@@ -3,28 +3,12 @@ import path from 'node:path';
 import fs from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import started from 'electron-squirrel-startup';
-import { createBlankCv, type CvDocument } from './shared/cv-model';
+import { createBlankCv, normalizeCvDocument, type CvDocument } from './shared/cv-model';
 import { getCvSuggestedFileName, getCvTitle, renderCvHtmlDocument } from './shared/cv-template';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
   app.quit();
-}
-
-type ImportCvPdfResult =
-  | { canceled: true }
-  | {
-      canceled: false;
-      projectId: string;
-      fileName: string;
-      pdfBytes: Uint8Array;
-    };
-
-interface SaveProjectExtractInput {
-  projectId: string;
-  text: string;
-  usedOcr: boolean;
-  pageCount: number;
 }
 
 interface ProjectSummary {
@@ -160,106 +144,6 @@ async function readProjectSummary(projectDir: string): Promise<ProjectSummary | 
 }
 
 function registerIpcHandlers() {
-  ipcMain.handle('cv:importPdf', async (): Promise<ImportCvPdfResult> => {
-    const parentWindow =
-      BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0] ?? null;
-
-    const result = await dialog.showOpenDialog(parentWindow, {
-      title: 'Import CV (PDF)',
-      properties: ['openFile'],
-      filters: [{ name: 'PDF', extensions: ['pdf'] }],
-    });
-
-    if (result.canceled || result.filePaths.length === 0) {
-      return { canceled: true };
-    }
-
-    const sourcePath = result.filePaths[0];
-    const fileName = path.basename(sourcePath);
-    const projectId = randomUUID();
-
-    const projectsRootDir = getProjectsRootDir();
-    const projectDir = path.join(projectsRootDir, projectId);
-    await fs.mkdir(projectDir, { recursive: true });
-
-    const storedPdfPath = path.join(projectDir, 'cv.pdf');
-    await fs.copyFile(sourcePath, storedPdfPath);
-
-    const now = new Date().toISOString();
-    const projectRecord = {
-      id: projectId,
-      title: fileName,
-      createdAt: now,
-      updatedAt: now,
-      tags: ['pdf'],
-    };
-    await fs.writeFile(
-      path.join(projectDir, 'project.json'),
-      JSON.stringify(projectRecord, null, 2),
-      'utf8'
-    );
-
-    const pdfBuffer = await fs.readFile(storedPdfPath);
-    return {
-      canceled: false,
-      projectId,
-      fileName,
-      pdfBytes: new Uint8Array(pdfBuffer),
-    };
-  });
-
-  ipcMain.handle('cv:saveProjectExtract', async (_event, input: SaveProjectExtractInput) => {
-    if (!input || typeof input.projectId !== 'string') {
-      throw new Error('Invalid payload: missing projectId');
-    }
-
-    const projectsRootDir = getProjectsRootDir();
-    const projectDir = path.join(projectsRootDir, input.projectId);
-
-    const now = new Date().toISOString();
-    const tags = ['pdf', input.usedOcr ? 'ocr' : 'text'];
-
-    const projectRecord = {
-      id: input.projectId,
-      title: `${input.projectId}.pdf`,
-      updatedAt: now,
-      tags,
-      extraction: {
-        method: input.usedOcr ? 'ocr' : 'pdfjs',
-        extractedAt: now,
-        pageCount: input.pageCount,
-        textLength: input.text.length,
-      },
-    };
-
-    // Preserve the original title/createdAt if they exist.
-    try {
-      const existingRaw = await fs.readFile(path.join(projectDir, 'project.json'), 'utf8');
-      const existingParsed: unknown = JSON.parse(existingRaw);
-      if (existingParsed && typeof existingParsed === 'object') {
-        const existing = existingParsed as Record<string, unknown>;
-        const existingTitle = typeof existing.title === 'string' ? existing.title : null;
-        const existingCreatedAt =
-          typeof existing.createdAt === 'string' ? existing.createdAt : null;
-        if (existingTitle) {
-          projectRecord.title = existingTitle;
-        }
-        if (existingCreatedAt) {
-          (projectRecord as typeof projectRecord & { createdAt?: string }).createdAt =
-            existingCreatedAt;
-        }
-      }
-    } catch {
-      // ignore
-    }
-
-    await fs.writeFile(
-      path.join(projectDir, 'project.json'),
-      JSON.stringify(projectRecord, null, 2),
-      'utf8'
-    );
-    await fs.writeFile(path.join(projectDir, 'extracted.txt'), input.text, 'utf8');
-  });
 
   ipcMain.handle('cv:listProjects', async (): Promise<ProjectSummary[]> => {
     const projectsRootDir = getProjectsRootDir();
@@ -283,30 +167,6 @@ function registerIpcHandlers() {
     return summaries;
   });
 
-  ipcMain.handle('cv:getProjectPdf', async (_event, projectId: string): Promise<Uint8Array> => {
-    if (typeof projectId !== 'string') {
-      throw new Error('Invalid payload: projectId must be a string');
-    }
-    assertProjectId(projectId);
-
-    const projectsRootDir = getProjectsRootDir();
-    const pdfPath = path.join(projectsRootDir, projectId, 'cv.pdf');
-    const pdfBuffer = await fs.readFile(pdfPath);
-    return new Uint8Array(pdfBuffer);
-  });
-
-  ipcMain.handle('cv:getProjectExtractText', async (_event, projectId: string): Promise<string> => {
-    if (typeof projectId !== 'string') {
-      throw new Error('Invalid payload: projectId must be a string');
-    }
-
-    const projectDir = getProjectDir(projectId);
-    try {
-      return await fs.readFile(path.join(projectDir, 'extracted.txt'), 'utf8');
-    } catch {
-      return '';
-    }
-  });
 
   ipcMain.handle('cv:createBlankCvProject', async (): Promise<CreateBlankCvProjectResult> => {
     const projectId = randomUUID();
@@ -344,10 +204,7 @@ function registerIpcHandlers() {
     }
     const projectDir = getProjectDir(projectId);
     const raw = await readJsonFile(path.join(projectDir, 'cv.json'));
-    if (!raw || typeof raw !== 'object') {
-      throw new Error('Invalid CV file');
-    }
-    return raw as CvDocument;
+    return normalizeCvDocument(raw);
   });
 
   ipcMain.handle('cv:saveProjectCv', async (_event, input: SaveProjectCvInput): Promise<void> => {
@@ -360,31 +217,22 @@ function registerIpcHandlers() {
 
     const now = new Date().toISOString();
     let existingCreatedAt: string | null = null;
-    let existingTitle: string | null = null;
-    let existingTags: string[] = [];
 
     try {
       const existing = await readJsonFile(path.join(projectDir, 'project.json'));
       if (existing && typeof existing === 'object') {
         const record = existing as Record<string, unknown>;
         existingCreatedAt = typeof record.createdAt === 'string' ? record.createdAt : null;
-        existingTitle = typeof record.title === 'string' ? record.title : null;
-        existingTags = Array.isArray(record.tags)
-          ? record.tags.filter((t): t is string => typeof t === 'string')
-          : [];
       }
     } catch {
       // ignore
     }
 
-    const nextTags = Array.from(new Set([...(existingTags ?? []), 'cv']));
-    const shouldPreserveTitle = (existingTags ?? []).includes('pdf');
-
     const projectRecord = {
       id: input.projectId,
-      title: shouldPreserveTitle && existingTitle ? existingTitle : getCvTitle(input.cv),
+      title: getCvTitle(input.cv),
       updatedAt: now,
-      tags: nextTags,
+      tags: ['cv'],
     };
 
     // Preserve createdAt if it exists.

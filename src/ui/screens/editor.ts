@@ -16,7 +16,6 @@ import {
 export interface EditorScreenModel {
   project: ProjectSummary;
   cv: CvDocument;
-  sourceText?: string;
 }
 
 export interface EditorScreenHandlers {
@@ -243,48 +242,6 @@ export function renderEditorScreen(
             </div>
 
             <div class="space-y-6 p-4">
-              ${
-                typeof model.sourceText === "string"
-                  ? `
-                    <div>
-                      <div class="flex items-center justify-between gap-3">
-                        <h3 class="text-xs font-semibold uppercase tracking-wide text-slate-500">Extracted Text</h3>
-                        <button
-                          type="button"
-                          class="inline-flex items-center gap-2 rounded border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-900 hover:bg-slate-50"
-                          data-action="copy-source"
-                        >
-                          Copy all
-                        </button>
-                      </div>
-
-                      <div class="mt-2 flex flex-wrap items-center gap-2">
-                        <input
-                          class="w-64 rounded border border-slate-200 px-3 py-2 text-xs text-slate-900"
-                          type="text"
-                          placeholder="Find in extracted text…"
-                          data-role="source-find"
-                        />
-                        <button
-                          type="button"
-                          class="inline-flex items-center gap-2 rounded border border-slate-200 bg-white px-2 py-2 text-xs font-semibold text-slate-900 hover:bg-slate-50"
-                          data-action="source-find-next"
-                        >
-                          Find next
-                        </button>
-                        <span class="text-xs text-slate-500" data-role="source-find-status"></span>
-                      </div>
-
-                      <textarea
-                        class="mt-2 h-48 w-full resize-y rounded border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-[11px] leading-4 text-slate-900"
-                        data-role="source-text"
-                        readonly
-                      ></textarea>
-                    </div>
-                  `.trim()
-                  : ``
-              }
-
               <div>
                 <h3 class="text-xs font-semibold uppercase tracking-wide text-slate-500">Basics</h3>
                 <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -392,88 +349,6 @@ export function renderEditorScreen(
     nameAttr: "data-lucide",
     root,
   });
-
-  const sourceTextArea = root.querySelector<HTMLTextAreaElement>(
-    "[data-role=source-text]"
-  );
-  const sourceFindInput = root.querySelector<HTMLInputElement>(
-    "[data-role=source-find]"
-  );
-  const sourceFindStatus = root.querySelector<HTMLSpanElement>(
-    "[data-role=source-find-status]"
-  );
-
-  if (sourceTextArea && typeof model.sourceText === "string") {
-    sourceTextArea.value = model.sourceText;
-
-    const copyButton = root.querySelector<HTMLButtonElement>(
-      "[data-action=copy-source]"
-    );
-    copyButton?.addEventListener("click", async () => {
-      try {
-        await navigator.clipboard.writeText(sourceTextArea.value);
-        if (sourceFindStatus) {
-          sourceFindStatus.textContent = "Copied.";
-        }
-      } catch {
-        // Fallback for environments where clipboard is blocked.
-        sourceTextArea.focus();
-        sourceTextArea.select();
-        try {
-          document.execCommand("copy");
-          if (sourceFindStatus) {
-            sourceFindStatus.textContent = "Copied.";
-          }
-        } catch {
-          if (sourceFindStatus) {
-            sourceFindStatus.textContent = "Copy failed.";
-          }
-        }
-      }
-    });
-
-    const findNext = () => {
-      const query = sourceFindInput?.value ?? "";
-      const needle = query.trim();
-      if (!needle) {
-        if (sourceFindStatus) {
-          sourceFindStatus.textContent = "";
-        }
-        return;
-      }
-
-      const haystack = sourceTextArea.value;
-      const start = Math.max(sourceTextArea.selectionEnd ?? 0, 0);
-      const idx = haystack.toLowerCase().indexOf(needle.toLowerCase(), start);
-      const wrappedIdx = idx === -1 ? haystack.toLowerCase().indexOf(needle.toLowerCase(), 0) : idx;
-
-      if (wrappedIdx === -1) {
-        if (sourceFindStatus) {
-          sourceFindStatus.textContent = "No matches.";
-        }
-        return;
-      }
-
-      sourceTextArea.focus();
-      sourceTextArea.setSelectionRange(wrappedIdx, wrappedIdx + needle.length);
-      if (sourceFindStatus) {
-        sourceFindStatus.textContent = "Match selected.";
-      }
-    };
-
-    root
-      .querySelector<HTMLButtonElement>("[data-action=source-find-next]")
-      ?.addEventListener("click", () => {
-        findNext();
-      });
-
-    sourceFindInput?.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        findNext();
-      }
-    });
-  }
 
   const backButtons = root.querySelectorAll<HTMLButtonElement | HTMLAnchorElement>(
     '[data-action="back"]'

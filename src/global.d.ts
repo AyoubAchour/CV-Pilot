@@ -7,31 +7,7 @@ declare module "*?url" {
   export default src;
 }
 
-declare module "pdfjs-dist/build/pdf.worker.mjs?url" {
-  const src: string;
-  export default src;
-}
-
-declare module "pdfjs-dist/build/pdf.worker.min.mjs?url" {
-  const src: string;
-  export default src;
-}
-
 declare global {
-  interface ImportCvPdfResult {
-    canceled: boolean;
-    projectId?: string;
-    fileName?: string;
-    pdfBytes?: Uint8Array;
-  }
-
-  interface SaveProjectExtractInput {
-    projectId: string;
-    text: string;
-    usedOcr: boolean;
-    pageCount: number;
-  }
-
   interface ProjectSummary {
     id: string;
     title: string;
@@ -64,11 +40,7 @@ declare global {
 
   interface Window {
     cvPilot: {
-      importCvPdf: () => Promise<ImportCvPdfResult>;
-      saveProjectExtract: (input: SaveProjectExtractInput) => Promise<void>;
       listProjects: () => Promise<ProjectSummary[]>;
-      getProjectPdf: (projectId: string) => Promise<Uint8Array>;
-      getProjectExtractText: (projectId: string) => Promise<string>;
 
       createBlankCvProject: () => Promise<CreateBlankCvProjectResult>;
       getProjectCv: (projectId: string) => Promise<CvDocument>;
