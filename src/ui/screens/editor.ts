@@ -138,6 +138,52 @@ export function renderEditorScreen(
     if (!iframe) {
       return;
     }
+
+    iframe.onload = () => {
+      const indicator = root.querySelector<HTMLParagraphElement>(
+        "[data-role=preview-pages]"
+      );
+      if (!indicator) {
+        return;
+      }
+
+      try {
+        const doc = iframe.contentDocument;
+        if (!doc) {
+          indicator.textContent = "";
+          return;
+        }
+
+        const probe = doc.createElement("div");
+        probe.style.height = "297mm";
+        probe.style.width = "1px";
+        probe.style.position = "absolute";
+        probe.style.visibility = "hidden";
+        doc.body.appendChild(probe);
+
+        const pageHeightPx = probe.getBoundingClientRect().height;
+        doc.body.removeChild(probe);
+
+        if (!pageHeightPx || !Number.isFinite(pageHeightPx)) {
+          indicator.textContent = "";
+          return;
+        }
+
+        const docHeight = doc.body.scrollHeight;
+        const pages = Math.max(1, Math.ceil(docHeight / pageHeightPx));
+
+        if (pages === 1) {
+          indicator.textContent = "Fits on 1 page.";
+          indicator.className = "mt-1 text-xs font-medium text-emerald-700";
+        } else {
+          indicator.textContent = `Spills to ${pages} pages. Consider trimming for a 1-page resume.`;
+          indicator.className = "mt-1 text-xs font-medium text-amber-700";
+        }
+      } catch {
+        // If cross-origin or rendering quirks, just hide the indicator.
+      }
+    };
+
     iframe.srcdoc = renderCvHtmlDocument(currentCv);
   };
 
@@ -323,6 +369,7 @@ export function renderEditorScreen(
             <div class="border-b border-slate-200 px-4 py-3">
               <h2 class="text-sm font-semibold text-slate-900">Preview</h2>
               <p class="mt-1 text-xs text-slate-500">This is the exact HTML that will be printed to PDF.</p>
+              <p class="mt-1 text-xs font-medium text-slate-600" data-role="preview-pages"></p>
             </div>
             <div class="bg-slate-100 p-4">
               <div class="overflow-auto border border-slate-200 bg-slate-200 p-3">

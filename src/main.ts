@@ -96,10 +96,11 @@ async function createPdfFromHtml(html: string): Promise<Buffer> {
       printBackground: true,
       preferCSSPageSize: true,
       margins: {
-        top: 0,
-        bottom: 0,
-        left: 0,
-        right: 0,
+        // Units are inches (Electron docs). Roughly: 12mm top/bottom, 14mm left/right.
+        top: 0.472,
+        bottom: 0.472,
+        left: 0.551,
+        right: 0.551,
       },
     });
   } finally {
