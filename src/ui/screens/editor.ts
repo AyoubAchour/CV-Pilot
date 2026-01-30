@@ -6,7 +6,16 @@ import {
   createIcons,
 } from "lucide";
 
-import type { CvDocument, CvEducation, CvExperience } from "../../shared/cv-model";
+import type {
+  CvAward,
+  CvCertification,
+  CvDocument,
+  CvEducation,
+  CvExperience,
+  CvProject,
+  CvPublication,
+  CvVolunteering,
+} from "../../shared/cv-model";
 import {
   renderCvHtmlDocument,
   getCvSuggestedFileName,
@@ -64,6 +73,47 @@ function cloneCv(cv: CvDocument): CvDocument {
       end: e.end,
       highlights: [...(e.highlights ?? [])],
     })),
+    sections: {
+      projects: cv.sections?.projects ?? false,
+      certifications: cv.sections?.certifications ?? false,
+      awards: cv.sections?.awards ?? false,
+      publications: cv.sections?.publications ?? false,
+      volunteering: cv.sections?.volunteering ?? false,
+    },
+    projects: (cv.projects ?? []).map((p) => ({
+      title: p.title,
+      date: p.date,
+      link: p.link,
+      highlights: [...(p.highlights ?? [])],
+    })),
+    certifications: (cv.certifications ?? []).map((c) => ({
+      name: c.name,
+      issuer: c.issuer,
+      date: c.date,
+      link: c.link,
+      highlights: [...(c.highlights ?? [])],
+    })),
+    awards: (cv.awards ?? []).map((a) => ({
+      title: a.title,
+      issuer: a.issuer,
+      date: a.date,
+      highlights: [...(a.highlights ?? [])],
+    })),
+    publications: (cv.publications ?? []).map((p) => ({
+      title: p.title,
+      venue: p.venue,
+      date: p.date,
+      link: p.link,
+      highlights: [...(p.highlights ?? [])],
+    })),
+    volunteering: (cv.volunteering ?? []).map((v) => ({
+      organization: v.organization,
+      role: v.role,
+      location: v.location,
+      start: v.start,
+      end: v.end,
+      highlights: [...(v.highlights ?? [])],
+    })),
     skills: [...(cv.skills ?? [])],
   };
 }
@@ -83,6 +133,55 @@ function emptyEducation(): CvEducation {
   return {
     school: "",
     degree: "",
+    location: "",
+    start: "",
+    end: "",
+    highlights: [""],
+  };
+}
+
+function emptyProject(): CvProject {
+  return {
+    title: "",
+    date: "",
+    link: "",
+    highlights: [""],
+  };
+}
+
+function emptyCertification(): CvCertification {
+  return {
+    name: "",
+    issuer: "",
+    date: "",
+    link: "",
+    highlights: [""],
+  };
+}
+
+function emptyAward(): CvAward {
+  return {
+    title: "",
+    issuer: "",
+    date: "",
+    highlights: [""],
+  };
+}
+
+function emptyPublication(): CvPublication {
+  return {
+    title: "",
+    venue: "",
+    date: "",
+    link: "",
+    highlights: [""],
+  };
+}
+
+function emptyVolunteering(): CvVolunteering {
+  return {
+    organization: "",
+    role: "",
     location: "",
     start: "",
     end: "",
@@ -222,6 +321,7 @@ export function renderEditorScreen(
     currentCv = next;
     updatePreview();
     scheduleSave();
+    syncOptionalSectionsUi();
   };
 
   root.innerHTML = `
@@ -361,6 +461,151 @@ export function renderEditorScreen(
               <div>
                 <h3 class="text-xs font-semibold uppercase tracking-wide text-slate-500">Skills (one per line)</h3>
                 <textarea class="mt-3 min-h-24 w-full rounded border border-slate-200 px-3 py-2 text-sm" data-field="skills"></textarea>
+              </div>
+
+              <div>
+                <h3 class="text-xs font-semibold uppercase tracking-wide text-slate-500">Additional sections</h3>
+                <p class="mt-1 text-xs text-slate-500">Toggle on what you want to show, then expand to edit.</p>
+
+                <details class="mt-3 rounded border border-slate-200 bg-white" data-role="section-projects" ${
+                  currentCv.sections.projects ? "open" : ""
+                }>
+                  <summary class="flex cursor-pointer items-start justify-between gap-3 bg-slate-50 px-3 py-2 text-left [&::-webkit-details-marker]:hidden">
+                    <div class="min-w-0">
+                      <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Projects</div>
+                      <div class="mt-0.5 text-xs text-slate-500" data-role="meta-projects"></div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <label class="flex items-center gap-2 text-xs font-semibold text-slate-700" data-role="toggle-projects">
+                        <input type="checkbox" class="h-4 w-4 rounded border-slate-300" data-field="toggle-projects" />
+                        Show
+                      </label>
+                      <button
+                        type="button"
+                        class="inline-flex items-center gap-1 rounded border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-900 hover:bg-slate-50"
+                        data-action="add-project"
+                      >
+                        <i data-lucide="plus" class="h-3.5 w-3.5"></i>
+                        Add
+                      </button>
+                    </div>
+                  </summary>
+                  <div class="px-3 pb-3 pt-3">
+                    <div class="space-y-4" data-role="projects-list"></div>
+                  </div>
+                </details>
+
+                <details class="mt-3 rounded border border-slate-200 bg-white" data-role="section-certifications" ${
+                  currentCv.sections.certifications ? "open" : ""
+                }>
+                  <summary class="flex cursor-pointer items-start justify-between gap-3 bg-slate-50 px-3 py-2 text-left [&::-webkit-details-marker]:hidden">
+                    <div class="min-w-0">
+                      <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Certifications</div>
+                      <div class="mt-0.5 text-xs text-slate-500" data-role="meta-certifications"></div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <label class="flex items-center gap-2 text-xs font-semibold text-slate-700" data-role="toggle-certifications">
+                        <input type="checkbox" class="h-4 w-4 rounded border-slate-300" data-field="toggle-certifications" />
+                        Show
+                      </label>
+                      <button
+                        type="button"
+                        class="inline-flex items-center gap-1 rounded border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-900 hover:bg-slate-50"
+                        data-action="add-certification"
+                      >
+                        <i data-lucide="plus" class="h-3.5 w-3.5"></i>
+                        Add
+                      </button>
+                    </div>
+                  </summary>
+                  <div class="px-3 pb-3 pt-3">
+                    <div class="space-y-4" data-role="certifications-list"></div>
+                  </div>
+                </details>
+
+                <details class="mt-3 rounded border border-slate-200 bg-white" data-role="section-awards" ${
+                  currentCv.sections.awards ? "open" : ""
+                }>
+                  <summary class="flex cursor-pointer items-start justify-between gap-3 bg-slate-50 px-3 py-2 text-left [&::-webkit-details-marker]:hidden">
+                    <div class="min-w-0">
+                      <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Awards</div>
+                      <div class="mt-0.5 text-xs text-slate-500" data-role="meta-awards"></div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <label class="flex items-center gap-2 text-xs font-semibold text-slate-700" data-role="toggle-awards">
+                        <input type="checkbox" class="h-4 w-4 rounded border-slate-300" data-field="toggle-awards" />
+                        Show
+                      </label>
+                      <button
+                        type="button"
+                        class="inline-flex items-center gap-1 rounded border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-900 hover:bg-slate-50"
+                        data-action="add-award"
+                      >
+                        <i data-lucide="plus" class="h-3.5 w-3.5"></i>
+                        Add
+                      </button>
+                    </div>
+                  </summary>
+                  <div class="px-3 pb-3 pt-3">
+                    <div class="space-y-4" data-role="awards-list"></div>
+                  </div>
+                </details>
+
+                <details class="mt-3 rounded border border-slate-200 bg-white" data-role="section-publications" ${
+                  currentCv.sections.publications ? "open" : ""
+                }>
+                  <summary class="flex cursor-pointer items-start justify-between gap-3 bg-slate-50 px-3 py-2 text-left [&::-webkit-details-marker]:hidden">
+                    <div class="min-w-0">
+                      <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Publications</div>
+                      <div class="mt-0.5 text-xs text-slate-500" data-role="meta-publications"></div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <label class="flex items-center gap-2 text-xs font-semibold text-slate-700" data-role="toggle-publications">
+                        <input type="checkbox" class="h-4 w-4 rounded border-slate-300" data-field="toggle-publications" />
+                        Show
+                      </label>
+                      <button
+                        type="button"
+                        class="inline-flex items-center gap-1 rounded border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-900 hover:bg-slate-50"
+                        data-action="add-publication"
+                      >
+                        <i data-lucide="plus" class="h-3.5 w-3.5"></i>
+                        Add
+                      </button>
+                    </div>
+                  </summary>
+                  <div class="px-3 pb-3 pt-3">
+                    <div class="space-y-4" data-role="publications-list"></div>
+                  </div>
+                </details>
+
+                <details class="mt-3 rounded border border-slate-200 bg-white" data-role="section-volunteering" ${
+                  currentCv.sections.volunteering ? "open" : ""
+                }>
+                  <summary class="flex cursor-pointer items-start justify-between gap-3 bg-slate-50 px-3 py-2 text-left [&::-webkit-details-marker]:hidden">
+                    <div class="min-w-0">
+                      <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">Volunteering</div>
+                      <div class="mt-0.5 text-xs text-slate-500" data-role="meta-volunteering"></div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <label class="flex items-center gap-2 text-xs font-semibold text-slate-700" data-role="toggle-volunteering">
+                        <input type="checkbox" class="h-4 w-4 rounded border-slate-300" data-field="toggle-volunteering" />
+                        Show
+                      </label>
+                      <button
+                        type="button"
+                        class="inline-flex items-center gap-1 rounded border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-900 hover:bg-slate-50"
+                        data-action="add-volunteering"
+                      >
+                        <i data-lucide="plus" class="h-3.5 w-3.5"></i>
+                        Add
+                      </button>
+                    </div>
+                  </summary>
+                  <div class="px-3 pb-3 pt-3">
+                    <div class="space-y-4" data-role="volunteering-list"></div>
+                  </div>
+                </details>
               </div>
             </div>
           </section>
@@ -739,6 +984,663 @@ export function renderEditorScreen(
     }
   };
 
+  const renderProjectsList = () => {
+    const list = root.querySelector<HTMLDivElement>("[data-role=projects-list]");
+    if (!list) {
+      return;
+    }
+
+    const items = currentCv.projects ?? [];
+
+    list.innerHTML = items
+      .map(
+        (_item, index) => `
+          <div class="rounded border border-slate-200 bg-slate-50 p-3" data-role="project" data-index="${index}">
+            <div class="flex items-center justify-between">
+              <h4 class="text-xs font-semibold text-slate-900">Entry ${index + 1}</h4>
+              <button
+                type="button"
+                class="inline-flex items-center gap-1 rounded border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-900 hover:bg-slate-50"
+                data-action="remove-project"
+                data-index="${index}"
+              >
+                <i data-lucide="trash-2" class="h-3.5 w-3.5"></i>
+                Remove
+              </button>
+            </div>
+
+            <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <label class="block">
+                <span class="text-xs font-medium text-slate-700">Title</span>
+                <input class="mt-1 w-full rounded border border-slate-200 px-3 py-2 text-sm" data-project-field="title" data-index="${index}" />
+              </label>
+              <label class="block">
+                <span class="text-xs font-medium text-slate-700">Date</span>
+                <input class="mt-1 w-full rounded border border-slate-200 px-3 py-2 text-sm" data-project-field="date" data-index="${index}" placeholder="2025" />
+              </label>
+              <label class="block sm:col-span-2">
+                <span class="text-xs font-medium text-slate-700">Link</span>
+                <input class="mt-1 w-full rounded border border-slate-200 px-3 py-2 text-sm" data-project-field="link" data-index="${index}" placeholder="https://..." />
+              </label>
+              <label class="block sm:col-span-2">
+                <span class="text-xs font-medium text-slate-700">Highlights (one per line)</span>
+                <textarea class="mt-1 min-h-21 w-full rounded border border-slate-200 px-3 py-2 text-sm" data-project-field="highlights" data-index="${index}"></textarea>
+              </label>
+            </div>
+          </div>
+        `
+      )
+      .join("");
+
+    createIcons({
+      icons: { Trash2 },
+      nameAttr: "data-lucide",
+      root: list,
+    });
+
+    const bind = (
+      selector: string,
+      getValue: (item: CvDocument["projects"][number]) => string,
+      setValue: (item: CvDocument["projects"][number], value: string) => void
+    ) => {
+      const inputs = list.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(selector);
+      for (const input of inputs) {
+        const indexAttr = input.getAttribute("data-index");
+        const index = indexAttr ? Number(indexAttr) : NaN;
+        if (!Number.isFinite(index) || !currentCv.projects?.[index]) {
+          continue;
+        }
+
+        input.value = getValue(currentCv.projects[index]);
+
+        input.addEventListener("input", () => {
+          const next = cloneCv(currentCv);
+          const item = next.projects[index];
+          setValue(item, input.value);
+          setCv(next);
+        });
+      }
+    };
+
+    bind('[data-project-field="title"]', (i) => i.title, (i, v) => {
+      i.title = v;
+    });
+    bind('[data-project-field="date"]', (i) => i.date, (i, v) => {
+      i.date = v;
+    });
+    bind('[data-project-field="link"]', (i) => i.link, (i, v) => {
+      i.link = v;
+    });
+    bind(
+      '[data-project-field="highlights"]',
+      (i) => fromLines(i.highlights ?? []),
+      (i, v) => {
+        i.highlights = toLines(v);
+      }
+    );
+
+    const removeButtons = list.querySelectorAll<HTMLButtonElement>(
+      "[data-action=remove-project]"
+    );
+    for (const button of removeButtons) {
+      button.addEventListener("click", () => {
+        const indexAttr = button.getAttribute("data-index");
+        const index = indexAttr ? Number(indexAttr) : NaN;
+        if (!Number.isFinite(index)) {
+          return;
+        }
+
+        const next = cloneCv(currentCv);
+        next.projects.splice(index, 1);
+        setCv(next);
+        renderProjectsList();
+      });
+    }
+  };
+
+  const renderCertificationsList = () => {
+    const list = root.querySelector<HTMLDivElement>("[data-role=certifications-list]");
+    if (!list) {
+      return;
+    }
+
+    const items = currentCv.certifications ?? [];
+
+    list.innerHTML = items
+      .map(
+        (_item, index) => `
+          <div class="rounded border border-slate-200 bg-slate-50 p-3" data-role="cert" data-index="${index}">
+            <div class="flex items-center justify-between">
+              <h4 class="text-xs font-semibold text-slate-900">Entry ${index + 1}</h4>
+              <button
+                type="button"
+                class="inline-flex items-center gap-1 rounded border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-900 hover:bg-slate-50"
+                data-action="remove-cert"
+                data-index="${index}"
+              >
+                <i data-lucide="trash-2" class="h-3.5 w-3.5"></i>
+                Remove
+              </button>
+            </div>
+
+            <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <label class="block">
+                <span class="text-xs font-medium text-slate-700">Name</span>
+                <input class="mt-1 w-full rounded border border-slate-200 px-3 py-2 text-sm" data-cert-field="name" data-index="${index}" />
+              </label>
+              <label class="block">
+                <span class="text-xs font-medium text-slate-700">Issuer</span>
+                <input class="mt-1 w-full rounded border border-slate-200 px-3 py-2 text-sm" data-cert-field="issuer" data-index="${index}" />
+              </label>
+              <label class="block">
+                <span class="text-xs font-medium text-slate-700">Date</span>
+                <input class="mt-1 w-full rounded border border-slate-200 px-3 py-2 text-sm" data-cert-field="date" data-index="${index}" placeholder="2025" />
+              </label>
+              <label class="block">
+                <span class="text-xs font-medium text-slate-700">Link</span>
+                <input class="mt-1 w-full rounded border border-slate-200 px-3 py-2 text-sm" data-cert-field="link" data-index="${index}" placeholder="https://..." />
+              </label>
+              <label class="block sm:col-span-2">
+                <span class="text-xs font-medium text-slate-700">Details (one per line)</span>
+                <textarea class="mt-1 min-h-21 w-full rounded border border-slate-200 px-3 py-2 text-sm" data-cert-field="highlights" data-index="${index}"></textarea>
+              </label>
+            </div>
+          </div>
+        `
+      )
+      .join("");
+
+    createIcons({
+      icons: { Trash2 },
+      nameAttr: "data-lucide",
+      root: list,
+    });
+
+    const bind = (
+      selector: string,
+      getValue: (item: CvDocument["certifications"][number]) => string,
+      setValue: (item: CvDocument["certifications"][number], value: string) => void
+    ) => {
+      const inputs = list.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(selector);
+      for (const input of inputs) {
+        const indexAttr = input.getAttribute("data-index");
+        const index = indexAttr ? Number(indexAttr) : NaN;
+        if (!Number.isFinite(index) || !currentCv.certifications?.[index]) {
+          continue;
+        }
+
+        input.value = getValue(currentCv.certifications[index]);
+
+        input.addEventListener("input", () => {
+          const next = cloneCv(currentCv);
+          const item = next.certifications[index];
+          setValue(item, input.value);
+          setCv(next);
+        });
+      }
+    };
+
+    bind('[data-cert-field="name"]', (i) => i.name, (i, v) => {
+      i.name = v;
+    });
+    bind('[data-cert-field="issuer"]', (i) => i.issuer, (i, v) => {
+      i.issuer = v;
+    });
+    bind('[data-cert-field="date"]', (i) => i.date, (i, v) => {
+      i.date = v;
+    });
+    bind('[data-cert-field="link"]', (i) => i.link, (i, v) => {
+      i.link = v;
+    });
+    bind(
+      '[data-cert-field="highlights"]',
+      (i) => fromLines(i.highlights ?? []),
+      (i, v) => {
+        i.highlights = toLines(v);
+      }
+    );
+
+    const removeButtons = list.querySelectorAll<HTMLButtonElement>("[data-action=remove-cert]");
+    for (const button of removeButtons) {
+      button.addEventListener("click", () => {
+        const indexAttr = button.getAttribute("data-index");
+        const index = indexAttr ? Number(indexAttr) : NaN;
+        if (!Number.isFinite(index)) {
+          return;
+        }
+
+        const next = cloneCv(currentCv);
+        next.certifications.splice(index, 1);
+        setCv(next);
+        renderCertificationsList();
+      });
+    }
+  };
+
+  const renderAwardsList = () => {
+    const list = root.querySelector<HTMLDivElement>("[data-role=awards-list]");
+    if (!list) {
+      return;
+    }
+
+    const items = currentCv.awards ?? [];
+
+    list.innerHTML = items
+      .map(
+        (_item, index) => `
+          <div class="rounded border border-slate-200 bg-slate-50 p-3" data-role="award" data-index="${index}">
+            <div class="flex items-center justify-between">
+              <h4 class="text-xs font-semibold text-slate-900">Entry ${index + 1}</h4>
+              <button
+                type="button"
+                class="inline-flex items-center gap-1 rounded border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-900 hover:bg-slate-50"
+                data-action="remove-award"
+                data-index="${index}"
+              >
+                <i data-lucide="trash-2" class="h-3.5 w-3.5"></i>
+                Remove
+              </button>
+            </div>
+
+            <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <label class="block">
+                <span class="text-xs font-medium text-slate-700">Title</span>
+                <input class="mt-1 w-full rounded border border-slate-200 px-3 py-2 text-sm" data-award-field="title" data-index="${index}" />
+              </label>
+              <label class="block">
+                <span class="text-xs font-medium text-slate-700">Issuer</span>
+                <input class="mt-1 w-full rounded border border-slate-200 px-3 py-2 text-sm" data-award-field="issuer" data-index="${index}" />
+              </label>
+              <label class="block">
+                <span class="text-xs font-medium text-slate-700">Date</span>
+                <input class="mt-1 w-full rounded border border-slate-200 px-3 py-2 text-sm" data-award-field="date" data-index="${index}" placeholder="2025" />
+              </label>
+              <label class="block sm:col-span-2">
+                <span class="text-xs font-medium text-slate-700">Details (one per line)</span>
+                <textarea class="mt-1 min-h-21 w-full rounded border border-slate-200 px-3 py-2 text-sm" data-award-field="highlights" data-index="${index}"></textarea>
+              </label>
+            </div>
+          </div>
+        `
+      )
+      .join("");
+
+    createIcons({
+      icons: { Trash2 },
+      nameAttr: "data-lucide",
+      root: list,
+    });
+
+    const bind = (
+      selector: string,
+      getValue: (item: CvDocument["awards"][number]) => string,
+      setValue: (item: CvDocument["awards"][number], value: string) => void
+    ) => {
+      const inputs = list.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(selector);
+      for (const input of inputs) {
+        const indexAttr = input.getAttribute("data-index");
+        const index = indexAttr ? Number(indexAttr) : NaN;
+        if (!Number.isFinite(index) || !currentCv.awards?.[index]) {
+          continue;
+        }
+
+        input.value = getValue(currentCv.awards[index]);
+
+        input.addEventListener("input", () => {
+          const next = cloneCv(currentCv);
+          const item = next.awards[index];
+          setValue(item, input.value);
+          setCv(next);
+        });
+      }
+    };
+
+    bind('[data-award-field="title"]', (i) => i.title, (i, v) => {
+      i.title = v;
+    });
+    bind('[data-award-field="issuer"]', (i) => i.issuer, (i, v) => {
+      i.issuer = v;
+    });
+    bind('[data-award-field="date"]', (i) => i.date, (i, v) => {
+      i.date = v;
+    });
+    bind(
+      '[data-award-field="highlights"]',
+      (i) => fromLines(i.highlights ?? []),
+      (i, v) => {
+        i.highlights = toLines(v);
+      }
+    );
+
+    const removeButtons = list.querySelectorAll<HTMLButtonElement>(
+      "[data-action=remove-award]"
+    );
+    for (const button of removeButtons) {
+      button.addEventListener("click", () => {
+        const indexAttr = button.getAttribute("data-index");
+        const index = indexAttr ? Number(indexAttr) : NaN;
+        if (!Number.isFinite(index)) {
+          return;
+        }
+
+        const next = cloneCv(currentCv);
+        next.awards.splice(index, 1);
+        setCv(next);
+        renderAwardsList();
+      });
+    }
+  };
+
+  const renderPublicationsList = () => {
+    const list = root.querySelector<HTMLDivElement>("[data-role=publications-list]");
+    if (!list) {
+      return;
+    }
+
+    const items = currentCv.publications ?? [];
+
+    list.innerHTML = items
+      .map(
+        (_item, index) => `
+          <div class="rounded border border-slate-200 bg-slate-50 p-3" data-role="publication" data-index="${index}">
+            <div class="flex items-center justify-between">
+              <h4 class="text-xs font-semibold text-slate-900">Entry ${index + 1}</h4>
+              <button
+                type="button"
+                class="inline-flex items-center gap-1 rounded border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-900 hover:bg-slate-50"
+                data-action="remove-publication"
+                data-index="${index}"
+              >
+                <i data-lucide="trash-2" class="h-3.5 w-3.5"></i>
+                Remove
+              </button>
+            </div>
+
+            <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <label class="block">
+                <span class="text-xs font-medium text-slate-700">Title</span>
+                <input class="mt-1 w-full rounded border border-slate-200 px-3 py-2 text-sm" data-publication-field="title" data-index="${index}" />
+              </label>
+              <label class="block">
+                <span class="text-xs font-medium text-slate-700">Venue</span>
+                <input class="mt-1 w-full rounded border border-slate-200 px-3 py-2 text-sm" data-publication-field="venue" data-index="${index}" />
+              </label>
+              <label class="block">
+                <span class="text-xs font-medium text-slate-700">Date</span>
+                <input class="mt-1 w-full rounded border border-slate-200 px-3 py-2 text-sm" data-publication-field="date" data-index="${index}" placeholder="2025" />
+              </label>
+              <label class="block">
+                <span class="text-xs font-medium text-slate-700">Link</span>
+                <input class="mt-1 w-full rounded border border-slate-200 px-3 py-2 text-sm" data-publication-field="link" data-index="${index}" placeholder="https://..." />
+              </label>
+              <label class="block sm:col-span-2">
+                <span class="text-xs font-medium text-slate-700">Details (one per line)</span>
+                <textarea class="mt-1 min-h-21 w-full rounded border border-slate-200 px-3 py-2 text-sm" data-publication-field="highlights" data-index="${index}"></textarea>
+              </label>
+            </div>
+          </div>
+        `
+      )
+      .join("");
+
+    createIcons({
+      icons: { Trash2 },
+      nameAttr: "data-lucide",
+      root: list,
+    });
+
+    const bind = (
+      selector: string,
+      getValue: (item: CvDocument["publications"][number]) => string,
+      setValue: (item: CvDocument["publications"][number], value: string) => void
+    ) => {
+      const inputs = list.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(selector);
+      for (const input of inputs) {
+        const indexAttr = input.getAttribute("data-index");
+        const index = indexAttr ? Number(indexAttr) : NaN;
+        if (!Number.isFinite(index) || !currentCv.publications?.[index]) {
+          continue;
+        }
+
+        input.value = getValue(currentCv.publications[index]);
+
+        input.addEventListener("input", () => {
+          const next = cloneCv(currentCv);
+          const item = next.publications[index];
+          setValue(item, input.value);
+          setCv(next);
+        });
+      }
+    };
+
+    bind('[data-publication-field="title"]', (i) => i.title, (i, v) => {
+      i.title = v;
+    });
+    bind('[data-publication-field="venue"]', (i) => i.venue, (i, v) => {
+      i.venue = v;
+    });
+    bind('[data-publication-field="date"]', (i) => i.date, (i, v) => {
+      i.date = v;
+    });
+    bind('[data-publication-field="link"]', (i) => i.link, (i, v) => {
+      i.link = v;
+    });
+    bind(
+      '[data-publication-field="highlights"]',
+      (i) => fromLines(i.highlights ?? []),
+      (i, v) => {
+        i.highlights = toLines(v);
+      }
+    );
+
+    const removeButtons = list.querySelectorAll<HTMLButtonElement>(
+      "[data-action=remove-publication]"
+    );
+    for (const button of removeButtons) {
+      button.addEventListener("click", () => {
+        const indexAttr = button.getAttribute("data-index");
+        const index = indexAttr ? Number(indexAttr) : NaN;
+        if (!Number.isFinite(index)) {
+          return;
+        }
+
+        const next = cloneCv(currentCv);
+        next.publications.splice(index, 1);
+        setCv(next);
+        renderPublicationsList();
+      });
+    }
+  };
+
+  const renderVolunteeringList = () => {
+    const list = root.querySelector<HTMLDivElement>("[data-role=volunteering-list]");
+    if (!list) {
+      return;
+    }
+
+    const items = currentCv.volunteering ?? [];
+
+    list.innerHTML = items
+      .map(
+        (_item, index) => `
+          <div class="rounded border border-slate-200 bg-slate-50 p-3" data-role="volunteer" data-index="${index}">
+            <div class="flex items-center justify-between">
+              <h4 class="text-xs font-semibold text-slate-900">Entry ${index + 1}</h4>
+              <button
+                type="button"
+                class="inline-flex items-center gap-1 rounded border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-900 hover:bg-slate-50"
+                data-action="remove-volunteering"
+                data-index="${index}"
+              >
+                <i data-lucide="trash-2" class="h-3.5 w-3.5"></i>
+                Remove
+              </button>
+            </div>
+
+            <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <label class="block">
+                <span class="text-xs font-medium text-slate-700">Role</span>
+                <input class="mt-1 w-full rounded border border-slate-200 px-3 py-2 text-sm" data-vol-field="role" data-index="${index}" />
+              </label>
+              <label class="block">
+                <span class="text-xs font-medium text-slate-700">Organization</span>
+                <input class="mt-1 w-full rounded border border-slate-200 px-3 py-2 text-sm" data-vol-field="organization" data-index="${index}" />
+              </label>
+              <label class="block">
+                <span class="text-xs font-medium text-slate-700">Location</span>
+                <input class="mt-1 w-full rounded border border-slate-200 px-3 py-2 text-sm" data-vol-field="location" data-index="${index}" />
+              </label>
+              <label class="block">
+                <span class="text-xs font-medium text-slate-700">Start</span>
+                <input class="mt-1 w-full rounded border border-slate-200 px-3 py-2 text-sm" data-vol-field="start" data-index="${index}" placeholder="2024" />
+              </label>
+              <label class="block">
+                <span class="text-xs font-medium text-slate-700">End</span>
+                <input class="mt-1 w-full rounded border border-slate-200 px-3 py-2 text-sm" data-vol-field="end" data-index="${index}" placeholder="Present" />
+              </label>
+              <label class="block sm:col-span-2">
+                <span class="text-xs font-medium text-slate-700">Highlights (one per line)</span>
+                <textarea class="mt-1 min-h-21 w-full rounded border border-slate-200 px-3 py-2 text-sm" data-vol-field="highlights" data-index="${index}"></textarea>
+              </label>
+            </div>
+          </div>
+        `
+      )
+      .join("");
+
+    createIcons({
+      icons: { Trash2 },
+      nameAttr: "data-lucide",
+      root: list,
+    });
+
+    const bind = (
+      selector: string,
+      getValue: (item: CvDocument["volunteering"][number]) => string,
+      setValue: (item: CvDocument["volunteering"][number], value: string) => void
+    ) => {
+      const inputs = list.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(selector);
+      for (const input of inputs) {
+        const indexAttr = input.getAttribute("data-index");
+        const index = indexAttr ? Number(indexAttr) : NaN;
+        if (!Number.isFinite(index) || !currentCv.volunteering?.[index]) {
+          continue;
+        }
+
+        input.value = getValue(currentCv.volunteering[index]);
+
+        input.addEventListener("input", () => {
+          const next = cloneCv(currentCv);
+          const item = next.volunteering[index];
+          setValue(item, input.value);
+          setCv(next);
+        });
+      }
+    };
+
+    bind('[data-vol-field="role"]', (i) => i.role, (i, v) => {
+      i.role = v;
+    });
+    bind('[data-vol-field="organization"]', (i) => i.organization, (i, v) => {
+      i.organization = v;
+    });
+    bind('[data-vol-field="location"]', (i) => i.location, (i, v) => {
+      i.location = v;
+    });
+    bind('[data-vol-field="start"]', (i) => i.start, (i, v) => {
+      i.start = v;
+    });
+    bind('[data-vol-field="end"]', (i) => i.end, (i, v) => {
+      i.end = v;
+    });
+    bind(
+      '[data-vol-field="highlights"]',
+      (i) => fromLines(i.highlights ?? []),
+      (i, v) => {
+        i.highlights = toLines(v);
+      }
+    );
+
+    const removeButtons = list.querySelectorAll<HTMLButtonElement>(
+      "[data-action=remove-volunteering]"
+    );
+    for (const button of removeButtons) {
+      button.addEventListener("click", () => {
+        const indexAttr = button.getAttribute("data-index");
+        const index = indexAttr ? Number(indexAttr) : NaN;
+        if (!Number.isFinite(index)) {
+          return;
+        }
+
+        const next = cloneCv(currentCv);
+        next.volunteering.splice(index, 1);
+        setCv(next);
+        renderVolunteeringList();
+      });
+    }
+  };
+
+  function syncOptionalSectionsUi() {
+    const configs: Array<{
+      key: keyof CvDocument["sections"];
+      addAction: string;
+      count: (cv: CvDocument) => number;
+      emptyHint: string;
+    }> = [
+      {
+        key: "projects",
+        addAction: "add-project",
+        count: (cv) => cv.projects?.length ?? 0,
+        emptyHint: "No entries yet",
+      },
+      {
+        key: "certifications",
+        addAction: "add-certification",
+        count: (cv) => cv.certifications?.length ?? 0,
+        emptyHint: "No entries yet",
+      },
+      {
+        key: "awards",
+        addAction: "add-award",
+        count: (cv) => cv.awards?.length ?? 0,
+        emptyHint: "No entries yet",
+      },
+      {
+        key: "publications",
+        addAction: "add-publication",
+        count: (cv) => cv.publications?.length ?? 0,
+        emptyHint: "No entries yet",
+      },
+      {
+        key: "volunteering",
+        addAction: "add-volunteering",
+        count: (cv) => cv.volunteering?.length ?? 0,
+        emptyHint: "No entries yet",
+      },
+    ];
+
+    for (const cfg of configs) {
+      const enabled = currentCv.sections?.[cfg.key] ?? false;
+      const details = root.querySelector<HTMLDetailsElement>(
+        `[data-role="section-${cfg.key}"]`
+      );
+      if (details) {
+        details.classList.toggle("opacity-80", !enabled);
+      }
+
+      const meta = root.querySelector<HTMLDivElement>(`[data-role="meta-${cfg.key}"]`);
+      if (meta) {
+        const n = cfg.count(currentCv);
+        const countText = n === 1 ? "1 entry" : `${n} entries`;
+        if (enabled) {
+          meta.textContent = n > 0 ? countText : cfg.emptyHint;
+        } else {
+          meta.textContent = n > 0 ? `Hidden (${countText} saved)` : "Hidden";
+        }
+      }
+    }
+  }
+
   root
     .querySelector<HTMLButtonElement>("[data-action=add-experience]")
     ?.addEventListener("click", () => {
@@ -757,8 +1659,163 @@ export function renderEditorScreen(
       renderEducationList();
     });
 
+  root
+    .querySelector<HTMLButtonElement>("[data-action=add-project]")
+    ?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const next = cloneCv(currentCv);
+      next.projects.push(emptyProject());
+      setCv(next);
+      renderProjectsList();
+    });
+
+  root
+    .querySelector<HTMLButtonElement>("[data-action=add-certification]")
+    ?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const next = cloneCv(currentCv);
+      next.certifications.push(emptyCertification());
+      setCv(next);
+      renderCertificationsList();
+    });
+
+  root
+    .querySelector<HTMLButtonElement>("[data-action=add-award]")
+    ?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const next = cloneCv(currentCv);
+      next.awards.push(emptyAward());
+      setCv(next);
+      renderAwardsList();
+    });
+
+  root
+    .querySelector<HTMLButtonElement>("[data-action=add-publication]")
+    ?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const next = cloneCv(currentCv);
+      next.publications.push(emptyPublication());
+      setCv(next);
+      renderPublicationsList();
+    });
+
+  root
+    .querySelector<HTMLButtonElement>("[data-action=add-volunteering]")
+    ?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const next = cloneCv(currentCv);
+      next.volunteering.push(emptyVolunteering());
+      setCv(next);
+      renderVolunteeringList();
+    });
+
+  const bindSectionToggle = (
+    key: keyof CvDocument["sections"],
+    selector: string,
+    ensureOnEnable: (cv: CvDocument) => void,
+    renderList: () => void
+  ) => {
+    const checkbox = root.querySelector<HTMLInputElement>(selector);
+    if (!checkbox) {
+      return;
+    }
+
+    // Prevent clicks on the toggle from collapsing/expanding the <details>.
+    root
+      .querySelector<HTMLElement>(`[data-role="toggle-${key}"]`)
+      ?.addEventListener("click", (e) => {
+        e.stopPropagation();
+      });
+
+    checkbox.addEventListener("click", (e) => {
+      e.stopPropagation();
+    });
+
+    checkbox.checked = currentCv.sections?.[key] ?? false;
+
+    checkbox.addEventListener("change", () => {
+      const next = cloneCv(currentCv);
+      next.sections[key] = checkbox.checked;
+      if (checkbox.checked) {
+        ensureOnEnable(next);
+      }
+
+      setCv(next);
+
+      const details = root.querySelector<HTMLDetailsElement>(`[data-role="section-${key}"]`);
+      if (details && checkbox.checked) {
+        details.open = true;
+      }
+
+      if (checkbox.checked) {
+        renderList();
+      }
+    });
+  };
+
+  bindSectionToggle(
+    "projects",
+    '[data-field="toggle-projects"]',
+    (cv) => {
+      if ((cv.projects ?? []).length === 0) {
+        cv.projects = [emptyProject()];
+      }
+    },
+    renderProjectsList
+  );
+
+  bindSectionToggle(
+    "certifications",
+    '[data-field="toggle-certifications"]',
+    (cv) => {
+      if ((cv.certifications ?? []).length === 0) {
+        cv.certifications = [emptyCertification()];
+      }
+    },
+    renderCertificationsList
+  );
+
+  bindSectionToggle(
+    "awards",
+    '[data-field="toggle-awards"]',
+    (cv) => {
+      if ((cv.awards ?? []).length === 0) {
+        cv.awards = [emptyAward()];
+      }
+    },
+    renderAwardsList
+  );
+
+  bindSectionToggle(
+    "publications",
+    '[data-field="toggle-publications"]',
+    (cv) => {
+      if ((cv.publications ?? []).length === 0) {
+        cv.publications = [emptyPublication()];
+      }
+    },
+    renderPublicationsList
+  );
+
+  bindSectionToggle(
+    "volunteering",
+    '[data-field="toggle-volunteering"]',
+    (cv) => {
+      if ((cv.volunteering ?? []).length === 0) {
+        cv.volunteering = [emptyVolunteering()];
+      }
+    },
+    renderVolunteeringList
+  );
+
   renderExperienceList();
   renderEducationList();
+  renderProjectsList();
+  renderCertificationsList();
+  renderAwardsList();
+  renderPublicationsList();
+  renderVolunteeringList();
+  syncOptionalSectionsUi();
   updatePreview();
   setStatus("saved");
 }

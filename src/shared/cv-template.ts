@@ -46,6 +46,45 @@ export function renderCvHtmlDocument(cv: CvDocument): string {
       nonEmptyLines(e.highlights ?? []).length > 0
   );
 
+  const projects = (cv.projects ?? []).filter(
+    (p) =>
+      [p.title, p.date, p.link].map((v) => v?.trim?.() ?? "").join("").length > 0 ||
+      nonEmptyLines(p.highlights ?? []).length > 0
+  );
+
+  const certifications = (cv.certifications ?? []).filter(
+    (c) =>
+      [c.name, c.issuer, c.date, c.link]
+        .map((v) => v?.trim?.() ?? "")
+        .join("")
+        .length > 0 ||
+      nonEmptyLines(c.highlights ?? []).length > 0
+  );
+
+  const awards = (cv.awards ?? []).filter(
+    (a) =>
+      [a.title, a.issuer, a.date].map((v) => v?.trim?.() ?? "").join("").length > 0 ||
+      nonEmptyLines(a.highlights ?? []).length > 0
+  );
+
+  const publications = (cv.publications ?? []).filter(
+    (p) =>
+      [p.title, p.venue, p.date, p.link]
+        .map((v) => v?.trim?.() ?? "")
+        .join("")
+        .length > 0 ||
+      nonEmptyLines(p.highlights ?? []).length > 0
+  );
+
+  const volunteering = (cv.volunteering ?? []).filter(
+    (v) =>
+      [v.organization, v.role, v.location, v.start, v.end]
+        .map((vv) => vv?.trim?.() ?? "")
+        .join("")
+        .length > 0 ||
+      nonEmptyLines(v.highlights ?? []).length > 0
+  );
+
   const skills = nonEmptyLines(cv.skills ?? []);
 
   const css = `
@@ -64,7 +103,7 @@ body{
   background:var(--bg);
 }
 
-/* Page size is A4. Margins are applied via printToPDF options for_toggleable consistency. */
+/* Page size is A4. Margins are applied via printToPDF options for toggleable consistency. */
 @page{ size: A4; margin: 0; }
 
 .page{
@@ -163,6 +202,41 @@ body{
         .join("")
     : `<p class="p" style="color:var(--muted)">Add your work history and quantify results where possible.</p>`;
 
+  const projectsHtml = projects.length
+    ? projects
+        .map((p) => {
+          const highlights = nonEmptyLines(p.highlights ?? []);
+          const title = p.title.trim() || "Project";
+          const date = p.date?.trim?.() ?? "";
+          const link = p.link?.trim?.() ?? "";
+          const linkLabel = link.replace(/^https?:\/\//, "");
+
+          return `
+            <div class="item">
+              <div class="item-head">
+                <div class="item-title">${escapeHtml(title)}</div>
+                <div class="item-meta">${escapeHtml(date)}</div>
+              </div>
+              ${
+                link
+                  ? `<div class="item-sub"><a href="${escapeHtml(link)}">${escapeHtml(
+                      linkLabel
+                    )}</a></div>`
+                  : ``
+              }
+              ${
+                highlights.length
+                  ? `<ul class="ul">${highlights
+                      .map((h) => `<li>${escapeHtml(h)}</li>`)
+                      .join("")}</ul>`
+                  : ``
+              }
+            </div>
+          `;
+        })
+        .join("")
+    : `<p class="p" style="color:var(--muted)">Add 1–3 projects that are most relevant to your target role.</p>`;
+
   const educationHtml = education.length
     ? education
         .map((e) => {
@@ -193,9 +267,134 @@ body{
         .join("")
     : `<p class="p" style="color:var(--muted)">Add your education, certifications, or relevant coursework.</p>`;
 
+  const certificationsHtml = certifications.length
+    ? certifications
+        .map((c) => {
+          const highlights = nonEmptyLines(c.highlights ?? []);
+          const metaParts = nonEmptyLines([c.date]);
+          const titleParts = nonEmptyLines([c.name, c.issuer]);
+          const link = c.link?.trim?.() ?? "";
+          const linkLabel = link.replace(/^https?:\/\//, "");
+
+          return `
+            <div class="item">
+              <div class="item-head">
+                <div class="item-title">${escapeHtml(titleParts.join(" | ") || "Certification")}</div>
+                <div class="item-meta">${escapeHtml(metaParts.join(" | "))}</div>
+              </div>
+              ${
+                link
+                  ? `<div class="item-sub"><a href="${escapeHtml(link)}">${escapeHtml(
+                      linkLabel
+                    )}</a></div>`
+                  : ``
+              }
+              ${
+                highlights.length
+                  ? `<ul class="ul">${highlights
+                      .map((h) => `<li>${escapeHtml(h)}</li>`)
+                      .join("")}</ul>`
+                  : ``
+              }
+            </div>
+          `;
+        })
+        .join("")
+    : `<p class="p" style="color:var(--muted)">Add certifications that matter for your target role.</p>`;
+
   const skillsHtml = skills.length
     ? `<p class="p">${skills.map(escapeHtml).join(", ")}</p>`
     : `<p class="p" style="color:var(--muted)">List skills that match the roles you want (tools, languages, methods).</p>`;
+
+  const awardsHtml = awards.length
+    ? awards
+        .map((a) => {
+          const highlights = nonEmptyLines(a.highlights ?? []);
+          const metaParts = nonEmptyLines([a.date]);
+          const titleParts = nonEmptyLines([a.title, a.issuer]);
+
+          return `
+            <div class="item">
+              <div class="item-head">
+                <div class="item-title">${escapeHtml(titleParts.join(" | ") || "Award")}</div>
+                <div class="item-meta">${escapeHtml(metaParts.join(" | "))}</div>
+              </div>
+              ${
+                highlights.length
+                  ? `<ul class="ul">${highlights
+                      .map((h) => `<li>${escapeHtml(h)}</li>`)
+                      .join("")}</ul>`
+                  : ``
+              }
+            </div>
+          `;
+        })
+        .join("")
+    : `<p class="p" style="color:var(--muted)">List awards that help prove excellence or credibility.</p>`;
+
+  const publicationsHtml = publications.length
+    ? publications
+        .map((p) => {
+          const highlights = nonEmptyLines(p.highlights ?? []);
+          const metaParts = nonEmptyLines([p.date]);
+          const titleParts = nonEmptyLines([p.title, p.venue]);
+          const link = p.link?.trim?.() ?? "";
+          const linkLabel = link.replace(/^https?:\/\//, "");
+
+          return `
+            <div class="item">
+              <div class="item-head">
+                <div class="item-title">${escapeHtml(titleParts.join(" | ") || "Publication")}</div>
+                <div class="item-meta">${escapeHtml(metaParts.join(" | "))}</div>
+              </div>
+              ${
+                link
+                  ? `<div class="item-sub"><a href="${escapeHtml(link)}">${escapeHtml(
+                      linkLabel
+                    )}</a></div>`
+                  : ``
+              }
+              ${
+                highlights.length
+                  ? `<ul class="ul">${highlights
+                      .map((h) => `<li>${escapeHtml(h)}</li>`)
+                      .join("")}</ul>`
+                  : ``
+              }
+            </div>
+          `;
+        })
+        .join("")
+    : `<p class="p" style="color:var(--muted)">Add publications only if they’re relevant to your target role.</p>`;
+
+  const volunteeringHtml = volunteering.length
+    ? volunteering
+        .map((v) => {
+          const highlights = nonEmptyLines(v.highlights ?? []);
+          const metaParts = nonEmptyLines([
+            [v.start?.trim(), v.end?.trim()].filter(Boolean).join(" - "),
+            v.location,
+          ]);
+          const titleParts = nonEmptyLines([v.role, v.organization]);
+
+          return `
+            <div class="item">
+              <div class="item-head">
+                <div class="item-title">${escapeHtml(titleParts.join(" | ") || "Volunteering")}</div>
+                <div class="item-meta">${escapeHtml(metaParts.join(" | "))}</div>
+              </div>
+              ${
+                highlights.length
+                  ? `<ul class="ul">${highlights
+                      .map((h) => `<li>${escapeHtml(h)}</li>`)
+                      .join("")}</ul>`
+                  : ``
+              }
+            </div>
+          `;
+        })
+        .join("")
+    : `<p class="p" style="color:var(--muted)">Add volunteer work that demonstrates leadership or impact.</p>`;
 
   return `<!doctype html>
 <html lang="en">
@@ -225,15 +424,70 @@ body{
       ${experienceHtml}
     </section>
 
+    ${
+      cv.sections.projects
+        ? `
+    <section class="section">
+      <h2 class="section-title">Projects</h2>
+      ${projectsHtml}
+    </section>
+    `
+        : ``
+    }
+
     <section class="section">
       <h2 class="section-title">Education</h2>
       ${educationHtml}
     </section>
 
+    ${
+      cv.sections.certifications
+        ? `
+    <section class="section">
+      <h2 class="section-title">Certifications</h2>
+      ${certificationsHtml}
+    </section>
+    `
+        : ``
+    }
+
     <section class="section">
       <h2 class="section-title">Skills</h2>
       ${skillsHtml}
     </section>
+
+    ${
+      cv.sections.awards
+        ? `
+    <section class="section">
+      <h2 class="section-title">Awards</h2>
+      ${awardsHtml}
+    </section>
+    `
+        : ``
+    }
+
+    ${
+      cv.sections.publications
+        ? `
+    <section class="section">
+      <h2 class="section-title">Publications</h2>
+      ${publicationsHtml}
+    </section>
+    `
+        : ``
+    }
+
+    ${
+      cv.sections.volunteering
+        ? `
+    <section class="section">
+      <h2 class="section-title">Volunteering</h2>
+      ${volunteeringHtml}
+    </section>
+    `
+        : ``
+    }
   </div>
 </body>
 </html>`;
