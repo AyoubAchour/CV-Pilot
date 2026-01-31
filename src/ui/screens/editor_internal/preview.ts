@@ -49,10 +49,6 @@ export function createPreviewController(root: HTMLElement): PreviewController {
           return;
         }
 
-        // Ensure the iframe content itself never shows scrollbars.
-        doc.documentElement.style.overflow = "hidden";
-        doc.body.style.overflow = "hidden";
-
         const previewFrameWrap = root.querySelector<HTMLDivElement>(
           "[data-role=preview-frame-wrap]"
         );
@@ -81,7 +77,10 @@ export function createPreviewController(root: HTMLElement): PreviewController {
         // Size the iframe to the rendered document height at A4 width.
         iframe.style.width = `${pageWidthPx}px`;
         iframe.style.height = "1px";
-        const docHeight = doc.documentElement.scrollHeight;
+        const docHeight = Math.max(
+          doc.documentElement.scrollHeight,
+          doc.body?.scrollHeight ?? 0
+        );
         iframe.style.height = `${docHeight}px`;
 
         const pages = Math.max(1, Math.ceil(docHeight / pageHeightPx));
@@ -112,6 +111,13 @@ export function createPreviewController(root: HTMLElement): PreviewController {
           const maxLeft = Math.max(0, previewViewport.scrollWidth - previewViewport.clientWidth);
           previewViewport.scrollTop = maxTop * scrollTopRatio;
           previewViewport.scrollLeft = maxLeft * scrollLeftRatio;
+        }
+
+        // Ensure the iframe content itself never shows scrollbars.
+        // Important: do this after measuring scrollHeight, otherwise some browsers report only the viewport height.
+        doc.documentElement.style.overflow = "hidden";
+        if (doc.body) {
+          doc.body.style.overflow = "hidden";
         }
       } catch {
         // If cross-origin or rendering quirks, just hide the indicator.

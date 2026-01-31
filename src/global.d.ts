@@ -38,6 +38,104 @@ declare global {
         savedPath: string;
       };
 
+  type GitHubAuthBeginResult = {
+    sessionId: string;
+    userCode: string;
+    verificationUri: string;
+    expiresIn: number;
+    interval: number;
+  };
+
+  type GitHubAuthPollResult = {
+    status: "pending" | "authorized" | "denied" | "expired" | "error";
+    interval?: number;
+    message?: string;
+  };
+
+  type GitHubUserProfile = {
+    login: string;
+    name: string | null;
+    htmlUrl: string;
+    blog: string | null;
+    location: string | null;
+  };
+
+  type GitHubRepoSummary = {
+    id: number;
+    name: string;
+    fullName: string;
+    private: boolean;
+    htmlUrl: string;
+    description: string | null;
+    language: string | null;
+    defaultBranch: string;
+    updatedAt: string;
+    pushedAt: string | null;
+    owner: string;
+  };
+
+  type GitHubReadmeResult = {
+    text: string | null;
+    truncated: boolean;
+  };
+
+  type OpenAiStatus = {
+    configured: boolean;
+    storageAvailable: boolean;
+    model: string;
+  };
+
+  type OpenAiRepoContext = {
+    fullName: string;
+    htmlUrl: string;
+    description: string | null;
+    language: string | null;
+    topics?: string[];
+    languages?: Record<string, number>;
+    treeSummary?: {
+      topLevel: string[];
+      countsByExt: Record<string, number>;
+      flags: string[];
+      truncated: boolean;
+    };
+    packageJson?: {
+      deps: string[];
+      devDeps: string[];
+      scripts: string[];
+    };
+    updatedAt: string;
+    pushedAt: string | null;
+    readmeText: string | null;
+    readmeTruncated: boolean;
+  };
+
+  type OpenAiGenerateCvSuggestionsInput = {
+    repos: OpenAiRepoContext[];
+    existingProjectLinks: string[];
+    existingSkills: string[];
+    preferredName: string | null;
+  };
+
+  type OpenAiProjectSuggestion = {
+    repoFullName: string;
+    title: string;
+    date: string;
+    link: string;
+    highlights: string[];
+  };
+
+  type OpenAiCvSuggestions = {
+    projects: OpenAiProjectSuggestion[];
+    skills: string[];
+    notes: string[];
+  };
+
+  type OpenAiTestResult = {
+    ok: boolean;
+    model: string;
+    message: string;
+  };
+
   interface Window {
     cvPilot: {
       listProjects: () => Promise<ProjectSummary[]>;
@@ -46,6 +144,32 @@ declare global {
       getProjectCv: (projectId: string) => Promise<CvDocument>;
       saveProjectCv: (input: SaveProjectCvInput) => Promise<void>;
       exportCvPdf: (input: ExportCvPdfInput) => Promise<ExportCvPdfResult>;
+
+      githubDisconnect: () => Promise<void>;
+      githubBeginAuth: (input: { includePrivate?: boolean }) => Promise<GitHubAuthBeginResult>;
+      githubPollAuth: (input: { sessionId: string }) => Promise<GitHubAuthPollResult>;
+      githubGetProfile: () => Promise<GitHubUserProfile>;
+      githubListRepos: (input: { includePrivate?: boolean }) => Promise<GitHubRepoSummary[]>;
+      githubGetReadme: (input: { owner: string; repo: string }) => Promise<GitHubReadmeResult>;
+
+      githubBuildRepoContextPack: (input: {
+        repos: GitHubRepoSummary[];
+        include?: {
+          topics?: boolean;
+          languages?: boolean;
+          tree?: boolean;
+          packageJson?: boolean;
+        };
+      }) => Promise<{ repos: OpenAiRepoContext[]; warnings: string[] }>;
+
+      openaiGetStatus: () => Promise<OpenAiStatus>;
+      openaiSetConfig: (input: { apiKey?: string; model?: string }) => Promise<void>;
+      openaiClearConfig: () => Promise<void>;
+      openaiGenerateCvSuggestionsFromGitHub: (
+        input: OpenAiGenerateCvSuggestionsInput
+      ) => Promise<OpenAiCvSuggestions>;
+
+      openaiTest: (input?: { apiKey?: string; model?: string }) => Promise<OpenAiTestResult>;
     };
   }
 }

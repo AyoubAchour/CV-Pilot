@@ -39,6 +39,22 @@ export function renderEditorHtml(model: { project: ProjectSummary }, currentCv: 
               <button
                 type="button"
                 class="inline-flex items-center gap-2 border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 shadow-sm hover:bg-slate-50"
+                data-action="openai-settings"
+              >
+                AI Settings
+              </button>
+
+              <button
+                type="button"
+                class="inline-flex items-center gap-2 border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 shadow-sm hover:bg-slate-50"
+                data-action="import-github"
+              >
+                Import from GitHub
+              </button>
+
+              <button
+                type="button"
+                class="inline-flex items-center gap-2 border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-900 shadow-sm hover:bg-slate-50"
                 data-action="export-pdf"
               >
                 <i data-lucide="file-down" class="h-4 w-4"></i>
@@ -303,17 +319,15 @@ export function renderEditorHtml(model: { project: ProjectSummary }, currentCv: 
               <p class="mt-1 text-xs text-slate-500">This is the exact HTML that will be printed to PDF.</p>
               <p class="mt-1 text-xs font-medium text-slate-600" data-role="preview-pages"></p>
             </div>
-            <div class="bg-slate-100 p-4">
-              <div class="rounded border border-slate-200 bg-slate-200 p-3">
-                <div class="aspect-210/297 w-full overflow-y-auto overflow-x-hidden rounded bg-white" data-role="preview-viewport">
-                  <div class="flex justify-center" data-role="preview-frame-center">
-                    <div class="mx-auto" data-role="preview-frame-wrap" style="overflow:hidden;">
-                      <iframe
-                        class="block border-0 bg-white"
-                        data-role="cv-preview"
-                        title="CV Preview"
-                      ></iframe>
-                    </div>
+            <div class="p-0">
+              <div class="aspect-210/297 w-full overflow-y-auto overflow-x-hidden rounded bg-white shadow-sm" data-role="preview-viewport">
+                <div class="flex items-center justify-center" data-role="preview-frame-center">
+                  <div data-role="preview-frame-wrap" style="overflow:hidden;">
+                    <iframe
+                      class="block border-0 bg-white"
+                      data-role="cv-preview"
+                      title="CV Preview"
+                    ></iframe>
                   </div>
                 </div>
               </div>

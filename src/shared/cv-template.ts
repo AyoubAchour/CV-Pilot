@@ -13,6 +13,139 @@ function nonEmptyLines(lines: string[]): string[] {
   return lines.map((v) => v.trim()).filter((v) => v.length > 0);
 }
 
+type SkillGroup = { label: string; items: string[] };
+
+function normalizeSkillDisplay(value: string): string {
+  const trimmed = value.trim().replace(/\s+/g, " ");
+  const key = trimmed.toLowerCase();
+
+  const map: Record<string, string> = {
+    js: "JavaScript",
+    javascript: "JavaScript",
+    ts: "TypeScript",
+    typescript: "TypeScript",
+    node: "Node.js",
+    nodejs: "Node.js",
+    "node.js": "Node.js",
+    reactjs: "React",
+    react: "React",
+    next: "Next.js",
+    nextjs: "Next.js",
+    "next.js": "Next.js",
+    github: "GitHub",
+    "github actions": "GitHub Actions",
+    eslint: "ESLint",
+    tailwindcss: "Tailwind CSS",
+    postcss: "PostCSS",
+  };
+
+  return map[key] ?? trimmed;
+}
+
+function normalizeSkillKey(value: string): string {
+  return value.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+function groupSkills(skills: string[]): SkillGroup[] {
+  const groups = new Map<string, string[]>();
+  const seen = new Set<string>();
+
+  const ensure = (label: string) => {
+    const existing = groups.get(label);
+    if (existing) return existing;
+    const next: string[] = [];
+    groups.set(label, next);
+    return next;
+  };
+
+  const categorize = (key: string): string => {
+    const languageKeys = new Set([
+      "typescript",
+      "javascript",
+      "rust",
+      "python",
+      "go",
+      "java",
+      "c",
+      "c++",
+      "c#",
+      "sql",
+      "bash",
+      "powershell",
+    ]);
+    const frameworkKeys = new Set([
+      "react",
+      "next.js",
+      "electron",
+      "node.js",
+      "express",
+      "vite",
+      "tailwind css",
+      "tailwind",
+    ]);
+    const toolingKeys = new Set([
+      "git",
+      "github",
+      "github actions",
+      "eslint",
+      "prettier",
+      "docker",
+      "electron forge",
+      "postcss",
+      "npm",
+      "pnpm",
+      "yarn",
+    ]);
+    const testingKeys = new Set(["jest", "vitest", "playwright", "cypress"]);
+    const databaseKeys = new Set([
+      "postgresql",
+      "postgres",
+      "mysql",
+      "sqlite",
+      "mongodb",
+      "redis",
+    ]);
+    const cloudKeys = new Set(["aws", "azure", "gcp", "vercel", "ci/cd", "cicd"]);
+
+    if (languageKeys.has(key)) return "Languages";
+    if (frameworkKeys.has(key)) return "Frameworks";
+    if (toolingKeys.has(key)) return "Tooling";
+    if (testingKeys.has(key)) return "Testing";
+    if (databaseKeys.has(key)) return "Databases";
+    if (cloudKeys.has(key)) return "DevOps/Cloud";
+    return "Other";
+  };
+
+  for (const raw of skills) {
+    const display = normalizeSkillDisplay(raw);
+    const key = normalizeSkillKey(display);
+    if (!key) continue;
+    if (seen.has(key)) continue;
+    seen.add(key);
+
+    const label = categorize(key);
+    ensure(label).push(display);
+  }
+
+  const order = [
+    "Languages",
+    "Frameworks",
+    "Tooling",
+    "Testing",
+    "Databases",
+    "DevOps/Cloud",
+    "Other",
+  ];
+  const out: SkillGroup[] = [];
+  for (const label of order) {
+    const items = groups.get(label);
+    if (items && items.length > 0) {
+      out.push({ label, items });
+    }
+  }
+  return out;
+}
+
 export function getCvTitle(cv: CvDocument): string {
   const name = cv.basics.fullName.trim();
   return name.length > 0 ? `${name} — CV` : "Untitled CV";
@@ -109,7 +242,7 @@ body{
 .page{
   width:210mm;
   min-height:297mm;
-  margin:16px auto;
+  margin:0;
   background:#fff;
   box-shadow: 0 10px 30px rgba(17,24,39,.10);
   border: 1px solid rgba(17,24,39,.08);
@@ -138,6 +271,10 @@ body{
 .item-sub{margin-top:3px; font-size:11.5px; color:var(--muted);}
 .ul{margin:6px 0 0 16px; padding:0;}
 .ul li{margin:2px 0; font-size:11.8px; line-height:1.45;}
+
+.skills{margin-top:2px;}
+.skills-row{font-size:11.8px; line-height:1.4; margin:0 0 2px;}
+.skills-label{font-weight:700;}
 
 @media print {
   body{ background:#fff; }
@@ -302,8 +439,16 @@ body{
         .join("")
     : `<p class="p" style="color:var(--muted)">Add certifications that matter for your target role.</p>`;
 
+  const skillGroups = groupSkills(skills);
   const skillsHtml = skills.length
-    ? `<p class="p">${skills.map(escapeHtml).join(", ")}</p>`
+    ? `<div class="skills">${skillGroups
+        .map(
+          (g) =>
+            `<div class="skills-row"><span class="skills-label">${escapeHtml(
+              g.label
+            )}:</span> ${g.items.map(escapeHtml).join(", ")}</div>`
+        )
+        .join("")}</div>`
     : `<p class="p" style="color:var(--muted)">List skills that match the roles you want (tools, languages, methods).</p>`;
 
   const awardsHtml = awards.length
@@ -420,6 +565,11 @@ body{
     </section>
 
     <section class="section">
+      <h2 class="section-title">Skills</h2>
+      ${skillsHtml}
+    </section>
+
+    <section class="section">
       <h2 class="section-title">Work Experience</h2>
       ${experienceHtml}
     </section>
@@ -450,11 +600,6 @@ body{
     `
         : ``
     }
-
-    <section class="section">
-      <h2 class="section-title">Skills</h2>
-      ${skillsHtml}
-    </section>
 
     ${
       cv.sections.awards

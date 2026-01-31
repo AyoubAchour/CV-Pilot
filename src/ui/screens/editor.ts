@@ -12,6 +12,8 @@ import { cloneCv, emptyAward, emptyCertification, emptyProject, emptyPublication
 import { renderEditorHtml } from "./editor_internal/view";
 import { createPreviewController } from "./editor_internal/preview";
 import { bindSectionToggle, syncOptionalSectionsUi } from "./editor_internal/optional_sections";
+import { bindGitHubImportModal } from "./editor_internal/github_import_modal";
+import { bindOpenAiSettingsModal } from "./editor_internal/openai_settings_modal";
 import { bindAddExperience, renderExperienceList } from "./editor_internal/sections/experience";
 import { bindAddEducation, renderEducationList } from "./editor_internal/sections/education";
 import { bindAddProject, renderProjectsList } from "./editor_internal/sections/projects";
@@ -160,6 +162,8 @@ export function renderEditorScreen(
     }
   });
 
+  bindOpenAiSettingsModal({ root });
+
   type BasicsTextKey = Exclude<keyof CvDocument["basics"], "links">;
 
   const basicsBindings: Array<[BasicsTextKey, string]> = [
@@ -231,6 +235,42 @@ export function renderEditorScreen(
   const renderAwards = () => renderAwardsList({ root, getCv, setCv });
   const renderPublications = () => renderPublicationsList({ root, getCv, setCv });
   const renderVolunteering = () => renderVolunteeringList({ root, getCv, setCv });
+
+  bindGitHubImportModal({
+    root,
+    getCv,
+    setCv,
+    onApplied: (prevCv, nextCv) => {
+      // Programmatic CV updates (from GitHub import) do not automatically re-render list UIs.
+      renderProjects();
+
+      const setFieldValue = (field: string, value: string) => {
+        const el = root.querySelector<HTMLInputElement | HTMLTextAreaElement>(
+          `[data-field="${field}"]`
+        );
+        if (el) {
+          el.value = value;
+        }
+      };
+
+      setFieldValue("fullName", nextCv.basics.fullName ?? "");
+      setFieldValue("location", nextCv.basics.location ?? "");
+      setFieldValue("links", fromLines(nextCv.basics.links ?? []));
+
+      if (skillsInput) {
+        skillsInput.value = fromLines(nextCv.skills ?? []);
+      }
+
+      if (!prevCv.sections.projects && nextCv.sections.projects) {
+        const details = root.querySelector<HTMLDetailsElement>(
+          '[data-role="section-projects"]'
+        );
+        if (details) {
+          details.open = true;
+        }
+      }
+    },
+  });
 
   bindAddExperience({
     root,

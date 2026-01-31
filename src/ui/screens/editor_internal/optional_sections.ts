@@ -35,6 +35,14 @@ export function syncOptionalSectionsUi(root: HTMLElement, cv: CvDocument) {
 
   for (const cfg of configs) {
     const enabled = cv.sections?.[cfg.key] ?? false;
+
+    const checkbox = root.querySelector<HTMLInputElement>(
+      `[data-field="toggle-${cfg.key}"]`
+    );
+    if (checkbox) {
+      checkbox.checked = enabled;
+    }
+
     const details = root.querySelector<HTMLDetailsElement>(
       `[data-role="section-${cfg.key}"]`
     );
