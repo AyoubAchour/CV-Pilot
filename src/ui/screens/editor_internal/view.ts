@@ -115,8 +115,27 @@ export function renderEditorHtml(model: { project: ProjectSummary }, currentCv: 
                   </label>
 
                   <label class="block sm:col-span-2">
-                    <span class="text-xs font-medium text-slate-700">Summary</span>
+                    <div class="flex items-center justify-between gap-3">
+                      <span class="text-xs font-medium text-slate-700">Summary</span>
+                      <button
+                        type="button"
+                        class="inline-flex items-center gap-2 rounded border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-900 hover:bg-slate-50 disabled:opacity-60"
+                        data-action="generate-summary"
+                      >
+                        Generate with AI
+                      </button>
+                    </div>
                     <textarea class="mt-1 min-h-24 w-full rounded border border-slate-200 px-3 py-2 text-sm" data-field="summary"></textarea>
+                    <div class="mt-1 flex items-center gap-2 text-xs text-slate-500">
+                      <span data-role="summary-ai-status"></span>
+                      <button
+                        type="button"
+                        class="hidden text-blue-700 underline"
+                        data-action="undo-summary-ai"
+                      >
+                        Undo
+                      </button>
+                    </div>
                   </label>
                 </div>
               </div>

@@ -191,6 +191,178 @@ export function renderEditorScreen(
     });
   }
 
+  const summaryInput = root.querySelector<HTMLTextAreaElement>(
+    '[data-field="summary"]'
+  );
+  const generateSummaryButton = root.querySelector<HTMLButtonElement>(
+    '[data-action="generate-summary"]'
+  );
+  const summaryAiStatus = root.querySelector<HTMLSpanElement>(
+    '[data-role="summary-ai-status"]'
+  );
+  const undoSummaryButton = root.querySelector<HTMLButtonElement>(
+    '[data-action="undo-summary-ai"]'
+  );
+
+  let isGeneratingSummary = false;
+  let lastSummaryUndo: string | null = null;
+
+  const setSummaryAiUi = (state: {
+    busy?: boolean;
+    statusText?: string;
+    canUndo?: boolean;
+  }) => {
+    if (generateSummaryButton) {
+      const busy = state.busy === true;
+      generateSummaryButton.disabled = busy;
+      generateSummaryButton.textContent = busy ? "Generating…" : "Generate with AI";
+    }
+
+    if (summaryAiStatus) {
+      summaryAiStatus.textContent = state.statusText ?? "";
+    }
+
+    if (undoSummaryButton) {
+      const canUndo = state.canUndo === true;
+      undoSummaryButton.classList.toggle("hidden", !canUndo);
+    }
+  };
+
+  undoSummaryButton?.addEventListener("click", () => {
+    if (lastSummaryUndo === null) return;
+    const next = cloneCv(currentCv);
+    next.basics.summary = lastSummaryUndo;
+    setCv(next);
+    if (summaryInput) {
+      summaryInput.value = next.basics.summary;
+    }
+    lastSummaryUndo = null;
+    setSummaryAiUi({ statusText: "Reverted summary.", canUndo: false });
+  });
+
+  generateSummaryButton?.addEventListener("click", async () => {
+    if (isGeneratingSummary) return;
+
+    const cv = getCv();
+
+    const hasAnyHighlights = (lines: Array<string | null | undefined>) =>
+      (lines ?? []).some((l) => (l ?? "").trim().length > 0);
+
+    const hasContent =
+      (cv.basics.headline ?? "").trim().length > 0 ||
+      (cv.skills ?? []).some((s) => s.trim().length > 0) ||
+      (cv.experience ?? []).some((e) => hasAnyHighlights(e.highlights)) ||
+      (cv.projects ?? []).some((p) => hasAnyHighlights(p.highlights));
+
+    if (!hasContent) {
+      setSummaryAiUi({
+        statusText:
+          "Add a headline, skills, or at least one highlight first, then try again.",
+        canUndo: false,
+      });
+      return;
+    }
+
+    const existingSummary = (cv.basics.summary ?? "").trim();
+    if (existingSummary.length > 0) {
+      const ok = window.confirm("Replace your existing summary with an AI draft?");
+      if (!ok) return;
+    }
+
+    setSummaryAiUi({ statusText: "Checking OpenAI settings…", canUndo: false });
+    let status: OpenAiStatus;
+    try {
+      status = await window.cvPilot.openaiGetStatus();
+    } catch (err) {
+      const raw = err instanceof Error ? err.message : "Failed to load OpenAI settings.";
+      const needsRestart = raw.includes("No handler registered") || raw.includes("openaiGetStatus");
+      setSummaryAiUi({
+        statusText: needsRestart
+          ? "OpenAI features require restarting the Electron app."
+          : raw,
+        canUndo: false,
+      });
+      return;
+    }
+
+    if (!status.storageAvailable) {
+      setSummaryAiUi({
+        statusText: "OpenAI cannot be configured on this system (secure storage unavailable).",
+        canUndo: false,
+      });
+      return;
+    }
+
+    if (!status.configured) {
+      setSummaryAiUi({ statusText: "OpenAI API key is missing. Open AI Settings to configure.", canUndo: false });
+      window.dispatchEvent(new Event("cvpilot:openai-settings"));
+      return;
+    }
+
+    const toLines = (value: string[]): string[] =>
+      (value ?? []).map((v) => v.trim()).filter((v) => v.length > 0);
+
+    const context: OpenAiGenerateSummaryFromCvInput = {
+      headline: (cv.basics.headline ?? "").trim() || null,
+      skills: toLines(cv.skills ?? []).slice(0, 18),
+      experience: (cv.experience ?? [])
+        .map((e) => ({
+          role: (e.role ?? "").trim(),
+          company: (e.company ?? "").trim(),
+          highlights: toLines(e.highlights ?? []).slice(0, 4),
+        }))
+        .filter((e) => e.role.length > 0 || e.company.length > 0 || e.highlights.length > 0)
+        .slice(0, 6),
+      projects: (cv.projects ?? [])
+        .map((p) => ({
+          title: (p.title ?? "").trim(),
+          highlights: toLines(p.highlights ?? []).slice(0, 4),
+        }))
+        .filter((p) => p.title.length > 0 || p.highlights.length > 0)
+        .slice(0, 6),
+      education: (cv.education ?? [])
+        .map((ed) => ({
+          school: (ed.school ?? "").trim(),
+          degree: (ed.degree ?? "").trim(),
+        }))
+        .filter((ed) => ed.school.length > 0 || ed.degree.length > 0)
+        .slice(0, 3),
+    };
+
+    isGeneratingSummary = true;
+    setSummaryAiUi({ busy: true, statusText: "Generating summary…", canUndo: false });
+
+    try {
+      const result = await window.cvPilot.openaiGenerateSummaryFromCv(context);
+      const summary = (result.summary ?? "").trim();
+      if (!summary) {
+        throw new Error("OpenAI returned an empty summary.");
+      }
+
+      lastSummaryUndo = currentCv.basics.summary ?? "";
+      const next = cloneCv(currentCv);
+      next.basics.summary = summary;
+      setCv(next);
+      if (summaryInput) {
+        summaryInput.value = summary;
+      }
+
+      const note = (result.notes ?? []).map((n) => n.trim()).filter(Boolean)[0] ?? "";
+      setSummaryAiUi({
+        statusText: note ? `Inserted AI draft. ${note}` : "Inserted AI draft summary.",
+        canUndo: true,
+      });
+    } catch (err) {
+      setSummaryAiUi({
+        statusText: err instanceof Error ? err.message : "Failed to generate summary.",
+        canUndo: false,
+      });
+    } finally {
+      isGeneratingSummary = false;
+      setSummaryAiUi({ busy: false });
+    }
+  });
+
   const linksInput = root.querySelector<HTMLTextAreaElement>(
     '[data-field="links"]'
   );

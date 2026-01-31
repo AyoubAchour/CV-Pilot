@@ -130,6 +130,19 @@ declare global {
     notes: string[];
   };
 
+  type OpenAiGenerateSummaryFromCvInput = {
+    headline: string | null;
+    skills: string[];
+    experience: Array<{ role: string; company: string; highlights: string[] }>;
+    projects: Array<{ title: string; highlights: string[] }>;
+    education: Array<{ school: string; degree: string }>;
+  };
+
+  type OpenAiGenerateSummaryFromCvResult = {
+    summary: string;
+    notes: string[];
+  };
+
   type OpenAiTestResult = {
     ok: boolean;
     model: string;
@@ -168,6 +181,10 @@ declare global {
       openaiGenerateCvSuggestionsFromGitHub: (
         input: OpenAiGenerateCvSuggestionsInput
       ) => Promise<OpenAiCvSuggestions>;
+
+      openaiGenerateSummaryFromCv: (
+        input: OpenAiGenerateSummaryFromCvInput
+      ) => Promise<OpenAiGenerateSummaryFromCvResult>;
 
       openaiTest: (input?: { apiKey?: string; model?: string }) => Promise<OpenAiTestResult>;
     };

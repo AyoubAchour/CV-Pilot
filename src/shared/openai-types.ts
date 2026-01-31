@@ -58,3 +58,16 @@ export type OpenAiCvSuggestions = {
   skills: string[];
   notes: string[];
 };
+
+export type OpenAiGenerateSummaryFromCvInput = {
+  headline: string | null;
+  skills: string[];
+  experience: Array<{ role: string; company: string; highlights: string[] }>;
+  projects: Array<{ title: string; highlights: string[] }>;
+  education: Array<{ school: string; degree: string }>;
+};
+
+export type OpenAiGenerateSummaryFromCvResult = {
+  summary: string;
+  notes: string[];
+};

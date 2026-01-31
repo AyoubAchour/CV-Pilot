@@ -3,6 +3,8 @@ import type { CvDocument } from './shared/cv-model';
 import type {
 	OpenAiCvSuggestions,
 	OpenAiGenerateCvSuggestionsInput,
+	OpenAiGenerateSummaryFromCvInput,
+	OpenAiGenerateSummaryFromCvResult,
 	OpenAiStatus,
 	OpenAiTestResult,
 } from "./shared/openai-types";
@@ -74,6 +76,10 @@ contextBridge.exposeInMainWorld('cvPilot', {
 		input: OpenAiGenerateCvSuggestionsInput
 	): Promise<OpenAiCvSuggestions> =>
 		ipcRenderer.invoke("cv:openaiGenerateCvSuggestionsFromGitHub", input),
+	openaiGenerateSummaryFromCv: (
+		input: OpenAiGenerateSummaryFromCvInput
+	): Promise<OpenAiGenerateSummaryFromCvResult> =>
+		ipcRenderer.invoke("cv:openaiGenerateSummaryFromCv", input),
 	openaiTest: (input?: { apiKey?: string; model?: string }): Promise<OpenAiTestResult> =>
 		ipcRenderer.invoke("cv:openaiTest", input),
 });
