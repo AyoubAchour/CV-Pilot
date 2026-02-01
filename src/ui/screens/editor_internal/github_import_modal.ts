@@ -7,11 +7,12 @@ import type {
 } from "../../../shared/github-types";
 
 import { cloneCv } from "./helpers";
+import type { SetCv } from "./cv_update";
 
 type BindGitHubImportModalArgs = {
   root: HTMLElement;
   getCv: () => CvDocument;
-  setCv: (next: CvDocument) => void;
+  setCv: SetCv;
   onApplied?: (prev: CvDocument, next: CvDocument) => void;
 };
 
@@ -370,7 +371,7 @@ export function bindGitHubImportModal({
 
       const messageHtml =
         inlineMessage
-          ? `<div class="mt-3 rounded border px-3 py-2 text-xs ${
+          ? `<div class="mt-3 border px-3 py-2 text-xs ${
               inlineMessage.kind === "error"
                 ? "border-rose-200 bg-rose-50 text-rose-800"
                 : inlineMessage.kind === "success"
@@ -390,7 +391,7 @@ export function bindGitHubImportModal({
           : "";
 
       const spinner =
-        '<span class="inline-block h-3 w-3 rounded-full border-2 border-white/60 border-t-white animate-spin"></span>';
+        '<span class="inline-block h-3 w-3 border-2 border-white/60 border-t-white animate-spin"></span>';
 
       const applyLabel =
         !isBusy
@@ -402,13 +403,13 @@ export function bindGitHubImportModal({
               : `${spinner} Working…`;
 
       overlay.innerHTML = `
-        <div class="w-full max-w-3xl overflow-hidden rounded border border-slate-200 bg-white shadow-lg">
+        <div class="w-full max-w-3xl overflow-hidden border border-slate-200 bg-white shadow-lg">
           <div class="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4">
             <div>
               <h2 class="text-base font-semibold text-slate-900">Import from GitHub</h2>
               <p class="mt-1 text-xs text-slate-500">Connect your GitHub, choose repos, and pull README/context.</p>
             </div>
-            <button type="button" class="rounded px-2 py-1 text-sm text-slate-600 hover:bg-slate-100 disabled:opacity-60" data-action="close" ${
+            <button type="button" class="px-2 py-1 text-sm text-slate-600 hover:bg-slate-100 disabled:opacity-60" data-action="close" ${
               isBusy ? "disabled" : ""
             }>✕</button>
           </div>
@@ -423,7 +424,7 @@ export function bindGitHubImportModal({
               </label>
             </div>
 
-            <div class="rounded border border-slate-200 bg-slate-50 p-3">
+            <div class="border border-slate-200 bg-slate-50 p-3">
               <div class="text-xs font-semibold text-slate-800">Connection</div>
               <div class="mt-1 text-xs text-slate-600">
                 ${
@@ -439,7 +440,7 @@ export function bindGitHubImportModal({
                   <div class="mt-3 text-xs text-slate-700">
                     <div>Enter this code on GitHub:</div>
                     <div class="mt-1 inline-flex items-center gap-2">
-                      <span class="rounded bg-white px-2 py-1 font-mono text-sm tracking-wider border border-slate-200">${auth.userCode}</span>
+                      <span class="bg-white px-2 py-1 font-mono text-sm tracking-wider border border-slate-200">${auth.userCode}</span>
                       <button type="button" class="border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-900 hover:bg-slate-50" data-action="copy-code">Copy</button>
                     </div>
                     <div class="mt-2">If the browser didn't open: <a class="text-blue-700 underline" href="#" data-action="show-url">${auth.verificationUri}</a></div>
@@ -468,7 +469,7 @@ export function bindGitHubImportModal({
               </div>
             </div>
 
-            <div class="rounded border border-slate-200 bg-white p-3">
+            <div class="border border-slate-200 bg-white p-3">
               <div class="flex items-start justify-between gap-3">
                 <div>
                   <div class="text-xs font-semibold text-slate-800">Repositories</div>
@@ -482,7 +483,7 @@ export function bindGitHubImportModal({
               </div>
 
               <div class="mt-3 flex items-center gap-2">
-                <input class="flex-1 min-w-0 rounded border border-slate-200 px-3 py-2 text-xs" placeholder="Filter repos…" value="${repoFilter.replace(
+                <input class="flex-1 min-w-0 border border-slate-200 px-3 py-2 text-xs" placeholder="Filter repos…" value="${repoFilter.replace(
                   /"/g,
                   "&quot;"
                 )}" data-field="repo-filter" />
@@ -493,7 +494,7 @@ export function bindGitHubImportModal({
                 </button>
               </div>
 
-              <div class="mt-3 max-h-72 overflow-auto rounded border border-slate-200" data-field="repo-list">
+              <div class="mt-3 max-h-72 overflow-auto border border-slate-200" data-field="repo-list">
                 ${
                   filteredRepos.length === 0
                     ? `<div class="p-3 text-xs text-slate-500">No repos loaded yet.</div>`
@@ -509,7 +510,7 @@ export function bindGitHubImportModal({
                             <input type="checkbox" class="mt-0.5 h-4 w-4" data-repo-id="${r.id}" ${checked} />
                             <span class="min-w-0 flex-1">
                               <span class="font-semibold text-slate-900">${r.fullName}</span>
-                              <span class="ml-2 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600">${badge}</span>
+                              <span class="ml-2 bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600">${badge}</span>
                               ${
                                 r.description
                                   ? `<div class="mt-0.5 text-slate-600">${r.description}</div>`
@@ -1001,7 +1002,7 @@ export function bindGitHubImportModal({
             }
             next.skills = mergedSkills;
 
-            setCv(next);
+            setCv(next, { kind: "structural", groupKey: "github-import" });
             try {
               onApplied?.(prevCv, next);
             } catch {

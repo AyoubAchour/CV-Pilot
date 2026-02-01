@@ -2,11 +2,12 @@ import { Trash2, createIcons } from "lucide";
 
 import type { CvDocument } from "../../../../shared/cv-model";
 import { cloneCv, emptyAward, fromLines, toLines } from "../helpers";
+import type { SetCv } from "../cv_update";
 
 export function renderAwardsList(options: {
   root: HTMLElement;
   getCv: () => CvDocument;
-  setCv: (next: CvDocument) => void;
+  setCv: SetCv;
 }) {
   const { root, getCv, setCv } = options;
 
@@ -21,12 +22,12 @@ export function renderAwardsList(options: {
   list.innerHTML = items
     .map(
       (_item, index) => `
-          <div class="rounded border border-slate-200 bg-slate-50 p-3" data-role="award" data-index="${index}">
+          <div class="border border-slate-200 bg-slate-50 p-3" data-role="award" data-index="${index}">
             <div class="flex items-center justify-between">
               <h4 class="text-xs font-semibold text-slate-900">Entry ${index + 1}</h4>
               <button
                 type="button"
-                class="inline-flex items-center gap-1 rounded border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-900 hover:bg-slate-50"
+                class="inline-flex items-center gap-1 border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-900 hover:bg-slate-50"
                 data-action="remove-award"
                 data-index="${index}"
               >
@@ -38,19 +39,19 @@ export function renderAwardsList(options: {
             <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
               <label class="block">
                 <span class="text-xs font-medium text-slate-700">Title</span>
-                <input class="mt-1 w-full rounded border border-slate-200 px-3 py-2 text-sm" data-award-field="title" data-index="${index}" />
+                <input class="mt-1 w-full border border-slate-200 px-3 py-2 text-sm" data-award-field="title" data-index="${index}" />
               </label>
               <label class="block">
                 <span class="text-xs font-medium text-slate-700">Issuer</span>
-                <input class="mt-1 w-full rounded border border-slate-200 px-3 py-2 text-sm" data-award-field="issuer" data-index="${index}" />
+                <input class="mt-1 w-full border border-slate-200 px-3 py-2 text-sm" data-award-field="issuer" data-index="${index}" />
               </label>
               <label class="block">
                 <span class="text-xs font-medium text-slate-700">Date</span>
-                <input class="mt-1 w-full rounded border border-slate-200 px-3 py-2 text-sm" data-award-field="date" data-index="${index}" placeholder="2025" />
+                <input class="mt-1 w-full border border-slate-200 px-3 py-2 text-sm" data-award-field="date" data-index="${index}" placeholder="2025" />
               </label>
               <label class="block sm:col-span-2">
                 <span class="text-xs font-medium text-slate-700">Details (one per line)</span>
-                <textarea class="mt-1 min-h-21 w-full rounded border border-slate-200 px-3 py-2 text-sm" data-award-field="highlights" data-index="${index}"></textarea>
+                <textarea class="mt-1 min-h-21 w-full border border-slate-200 px-3 py-2 text-sm" data-award-field="highlights" data-index="${index}"></textarea>
               </label>
             </div>
           </div>
@@ -66,6 +67,7 @@ export function renderAwardsList(options: {
 
   const bind = (
     selector: string,
+    groupKey: string,
     getValue: (item: CvDocument["awards"][number]) => string,
     setValue: (item: CvDocument["awards"][number], value: string) => void
   ) => {
@@ -84,23 +86,28 @@ export function renderAwardsList(options: {
         const next = cloneCv(getCv());
         const item = next.awards[index];
         setValue(item, input.value);
-        setCv(next);
+        setCv(next, { kind: "typing", groupKey: `awards[${index}].${groupKey}` });
       });
     }
   };
 
-  bind('[data-award-field="title"]', (i) => i.title, (i, v) => {
+  bind('[data-award-field="title"]', "title", (i) => i.title, (i, v) => {
     i.title = v;
   });
-  bind('[data-award-field="issuer"]', (i) => i.issuer, (i, v) => {
+  bind('[data-award-field="issuer"]', "issuer", (i) => i.issuer, (i, v) => {
     i.issuer = v;
   });
-  bind('[data-award-field="date"]', (i) => i.date, (i, v) => {
+  bind('[data-award-field="date"]', "date", (i) => i.date, (i, v) => {
     i.date = v;
   });
-  bind('[data-award-field="highlights"]', (i) => fromLines(i.highlights ?? []), (i, v) => {
-    i.highlights = toLines(v);
-  });
+  bind(
+    '[data-award-field="highlights"]',
+    "highlights",
+    (i) => fromLines(i.highlights ?? []),
+    (i, v) => {
+      i.highlights = toLines(v);
+    }
+  );
 
   const removeButtons = list.querySelectorAll<HTMLButtonElement>("[data-action=remove-award]");
   for (const button of removeButtons) {
@@ -113,7 +120,7 @@ export function renderAwardsList(options: {
 
       const next = cloneCv(getCv());
       next.awards.splice(index, 1);
-      setCv(next);
+      setCv(next, { kind: "structural", groupKey: "awards" });
       renderAwardsList(options);
     });
   }
@@ -122,7 +129,7 @@ export function renderAwardsList(options: {
 export function bindAddAward(options: {
   root: HTMLElement;
   getCv: () => CvDocument;
-  setCv: (next: CvDocument) => void;
+  setCv: SetCv;
   render: () => void;
 }) {
   const { root, getCv, setCv, render } = options;
@@ -134,7 +141,7 @@ export function bindAddAward(options: {
       e.stopPropagation();
       const next = cloneCv(getCv());
       next.awards.push(emptyAward());
-      setCv(next);
+      setCv(next, { kind: "structural", groupKey: "awards" });
       render();
     });
 }

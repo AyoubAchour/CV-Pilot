@@ -21,6 +21,7 @@ import { bindAddCertification, renderCertificationsList } from "./editor_interna
 import { bindAddAward, renderAwardsList } from "./editor_internal/sections/awards";
 import { bindAddPublication, renderPublicationsList } from "./editor_internal/sections/publications";
 import { bindAddVolunteering, renderVolunteeringList } from "./editor_internal/sections/volunteering";
+import type { CvUpdateMeta } from "./editor_internal/cv_update";
 
 export interface EditorScreenModel {
   project: ProjectSummary;
@@ -33,15 +34,52 @@ export interface EditorScreenHandlers {
   onExportPdf?: (cv: CvDocument, suggestedFileName: string) => Promise<void>;
 }
 
+function cloneForHistory(cv: CvDocument): CvDocument {
+  // Reuse the same deep-ish clone shape used everywhere else.
+  return cloneCv(cv);
+}
+
+function shouldHandleUndoShortcut(event: KeyboardEvent): boolean {
+  const key = event.key.toLowerCase();
+  const isZ = key === "z";
+  const isY = key === "y";
+  const isMac = navigator.platform.toLowerCase().includes("mac");
+  const mod = isMac ? event.metaKey : event.ctrlKey;
+  return mod && (isZ || isY);
+}
+
+function isEditableTarget(target: EventTarget | null): boolean {
+  const el = target as HTMLElement | null;
+  if (!el) return false;
+  const tag = el.tagName.toLowerCase();
+  if (tag === "input" || tag === "textarea" || tag === "select") return true;
+  if (el.isContentEditable) return true;
+  return false;
+}
+
 export function renderEditorScreen(
   root: HTMLElement,
   model: EditorScreenModel,
   handlers: EditorScreenHandlers = {}
 ) {
+  const listeners = new AbortController();
+
   let currentCv = cloneCv(model.cv);
   let saveTimer: number | null = null;
   let isSaving = false;
   let isExporting = false;
+
+  const history = {
+    past: [] as CvDocument[],
+    future: [] as CvDocument[],
+    limit: 60,
+    // Group typing updates so each field becomes 1 undo step.
+    pending: null as null | {
+      groupKey: string;
+      base: CvDocument;
+      timer: number;
+    },
+  };
 
   const openExperienceEntries = new Set<number>([0]);
   const openEducationEntries = new Set<number>([0]);
@@ -112,11 +150,83 @@ export function renderEditorScreen(
 
   let preview: ReturnType<typeof createPreviewController> | null = null;
 
-  const setCv = (next: CvDocument) => {
+  const rehydrateUi = () => {
+    // Basics fields
+    const setFieldValue = (field: string, value: string) => {
+      const el = root.querySelector<HTMLInputElement | HTMLTextAreaElement>(
+        `[data-field="${field}"]`
+      );
+      if (el) el.value = value;
+    };
+
+    setFieldValue("fullName", currentCv.basics.fullName ?? "");
+    setFieldValue("headline", currentCv.basics.headline ?? "");
+    setFieldValue("email", currentCv.basics.email ?? "");
+    setFieldValue("phone", currentCv.basics.phone ?? "");
+    setFieldValue("location", currentCv.basics.location ?? "");
+    setFieldValue("summary", currentCv.basics.summary ?? "");
+    setFieldValue("links", fromLines(currentCv.basics.links ?? []));
+    setFieldValue("skills", fromLines(currentCv.skills ?? []));
+  };
+
+  const pushHistory = (base: CvDocument) => {
+    history.past.push(cloneForHistory(base));
+    if (history.past.length > history.limit) {
+      history.past.splice(0, history.past.length - history.limit);
+    }
+    history.future = [];
+  };
+
+  const flushTypingGroup = () => {
+    if (!history.pending) return;
+    window.clearTimeout(history.pending.timer);
+    pushHistory(history.pending.base);
+    history.pending = null;
+  };
+
+  // Assigned after the header buttons are in the DOM.
+  // Kept as a mutable function so `setCv()` can enable/disable undo/redo immediately.
+  let updateUndoRedoUi = () => {
+    // no-op until the header buttons are rendered
+    return;
+  };
+
+  const setCv = (next: CvDocument, meta: CvUpdateMeta = {}) => {
+    const kind = meta.kind ?? "typing";
+    const groupKey = (meta.groupKey ?? "").trim();
+
+    if (kind === "typing" && groupKey) {
+      if (history.pending && history.pending.groupKey !== groupKey) {
+        flushTypingGroup();
+      }
+      if (!history.pending) {
+        history.pending = {
+          groupKey,
+          base: cloneForHistory(currentCv),
+          timer: window.setTimeout(() => {
+            flushTypingGroup();
+            updateUndoRedoUi();
+          }, 750),
+        };
+      } else {
+        window.clearTimeout(history.pending.timer);
+        history.pending.timer = window.setTimeout(() => {
+          flushTypingGroup();
+          updateUndoRedoUi();
+        }, 750);
+      }
+    } else {
+      flushTypingGroup();
+      pushHistory(currentCv);
+    }
+
     currentCv = next;
     preview?.update(currentCv);
     scheduleSave();
     syncOptionalSectionsUi(root, currentCv);
+
+    // Enable Undo immediately after any change (typing groups or structural updates).
+    updateUndoRedoUi();
   };
 
   root.innerHTML = renderEditorHtml(model, currentCv);
@@ -133,14 +243,152 @@ export function renderEditorScreen(
 
   preview = createPreviewController(root);
 
+  const undoButton = root.querySelector<HTMLButtonElement>(
+    '[data-action="undo"]'
+  );
+  const redoButton = root.querySelector<HTMLButtonElement>(
+    '[data-action="redo"]'
+  );
+
+  updateUndoRedoUi = () => {
+    const canUndo = history.past.length > 0 || history.pending !== null;
+    const canRedo = history.future.length > 0;
+    if (undoButton) undoButton.disabled = !canUndo;
+    if (redoButton) redoButton.disabled = !canRedo;
+  };
+
+  const undo = () => {
+    flushTypingGroup();
+    const prev = history.past.pop();
+    if (!prev) {
+      updateUndoRedoUi();
+      return;
+    }
+    history.future.push(cloneForHistory(currentCv));
+    currentCv = cloneForHistory(prev);
+    preview?.update(currentCv);
+    // Re-render dynamic lists + inputs
+    renderExperience();
+    renderEducation();
+    renderProjects();
+    renderCertifications();
+    renderAwards();
+    renderPublications();
+    renderVolunteering();
+    syncOptionalSectionsUi(root, currentCv);
+    rehydrateUi();
+    scheduleSave();
+    updateUndoRedoUi();
+  };
+
+  const redo = () => {
+    flushTypingGroup();
+    const next = history.future.pop();
+    if (!next) {
+      updateUndoRedoUi();
+      return;
+    }
+    history.past.push(cloneForHistory(currentCv));
+    currentCv = cloneForHistory(next);
+    preview?.update(currentCv);
+    renderExperience();
+    renderEducation();
+    renderProjects();
+    renderCertifications();
+    renderAwards();
+    renderPublications();
+    renderVolunteering();
+    syncOptionalSectionsUi(root, currentCv);
+    rehydrateUi();
+    scheduleSave();
+    updateUndoRedoUi();
+  };
+
+  undoButton?.addEventListener("click", (e) => {
+    e.preventDefault();
+    undo();
+  });
+  redoButton?.addEventListener("click", (e) => {
+    e.preventDefault();
+    redo();
+  });
+
+  const keyHandler = (event: KeyboardEvent) => {
+    if (!shouldHandleUndoShortcut(event)) return;
+    if (!isEditableTarget(event.target)) return;
+    const key = event.key.toLowerCase();
+    const isMac = navigator.platform.toLowerCase().includes("mac");
+    const mod = isMac ? event.metaKey : event.ctrlKey;
+    if (!mod) return;
+
+    if (key === "z" && event.shiftKey) {
+      event.preventDefault();
+      redo();
+      return;
+    }
+
+    if (key === "z") {
+      event.preventDefault();
+      undo();
+      return;
+    }
+
+    if (key === "y") {
+      event.preventDefault();
+      redo();
+    }
+  };
+  window.addEventListener("keydown", keyHandler, { signal: listeners.signal });
+
   const backButtons = root.querySelectorAll<HTMLButtonElement | HTMLAnchorElement>(
     '[data-action="back"]'
   );
   for (const button of backButtons) {
     button.addEventListener("click", (e) => {
       e.preventDefault();
+      listeners.abort();
       handlers.onBack?.();
     });
+  }
+
+  const sidebarSectionLinks = root.querySelectorAll<HTMLAnchorElement>(
+    'aside nav a[href^="#section-"]'
+  );
+  for (const link of sidebarSectionLinks) {
+    link.addEventListener("click", (e) => {
+      e.preventDefault();
+      const href = link.getAttribute("href") ?? "";
+      const id = href.startsWith("#") ? href.slice(1) : "";
+      if (!id) return;
+
+      const section = root.querySelector<HTMLElement>(`#${id}`);
+      if (!section) return;
+
+      const details = section.closest("details");
+      if (details) {
+        details.open = true;
+      }
+
+      section.scrollIntoView({ block: "start", behavior: "smooth" });
+    }, { signal: listeners.signal });
+  }
+
+  const editorRootSummaries = root.querySelectorAll<HTMLElement>(
+    'main summary'
+  );
+  for (const summary of editorRootSummaries) {
+    summary.addEventListener(
+      "click",
+      (e) => {
+        // Do not toggle <details> if user is clicking an interactive control inside the summary.
+        const target = e.target as HTMLElement | null;
+        if (target?.closest("button, a, input, label, select, textarea")) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      },
+      { signal: listeners.signal }
+    );
   }
 
   const exportButton = root.querySelector<HTMLButtonElement>(
@@ -164,7 +412,7 @@ export function renderEditorScreen(
 
   bindOpenAiSettingsModal({ root });
 
-  type BasicsTextKey = Exclude<keyof CvDocument["basics"], "links">;
+type BasicsTextKey = Exclude<keyof CvDocument["basics"], "links">;
 
   const basicsBindings: Array<[BasicsTextKey, string]> = [
     ["fullName", "fullName"],
@@ -187,7 +435,7 @@ export function renderEditorScreen(
     input.addEventListener("input", () => {
       const next = cloneCv(currentCv);
       next.basics[key] = input.value;
-      setCv(next);
+      setCv(next, { kind: "typing", groupKey: `basics.${field}` });
     });
   }
 
@@ -232,7 +480,7 @@ export function renderEditorScreen(
     if (lastSummaryUndo === null) return;
     const next = cloneCv(currentCv);
     next.basics.summary = lastSummaryUndo;
-    setCv(next);
+    setCv(next, { kind: "structural", groupKey: "basics.summary" });
     if (summaryInput) {
       summaryInput.value = next.basics.summary;
     }
@@ -342,7 +590,7 @@ export function renderEditorScreen(
       lastSummaryUndo = currentCv.basics.summary ?? "";
       const next = cloneCv(currentCv);
       next.basics.summary = summary;
-      setCv(next);
+      setCv(next, { kind: "structural", groupKey: "basics.summary" });
       if (summaryInput) {
         summaryInput.value = summary;
       }
@@ -371,7 +619,7 @@ export function renderEditorScreen(
     linksInput.addEventListener("input", () => {
       const next = cloneCv(currentCv);
       next.basics.links = toLines(linksInput.value);
-      setCv(next);
+      setCv(next, { kind: "typing", groupKey: "basics.links" });
     });
   }
 
@@ -383,7 +631,7 @@ export function renderEditorScreen(
     skillsInput.addEventListener("input", () => {
       const next = cloneCv(currentCv);
       next.skills = toLines(skillsInput.value);
-      setCv(next);
+      setCv(next, { kind: "typing", groupKey: "skills" });
     });
   }
 
@@ -413,6 +661,9 @@ export function renderEditorScreen(
     getCv,
     setCv,
     onApplied: (prevCv, nextCv) => {
+      // This is a structural update applied programmatically.
+      setCv(cloneCv(nextCv), { kind: "structural", groupKey: "github-import" });
+
       // Programmatic CV updates (from GitHub import) do not automatically re-render list UIs.
       renderProjects();
 
@@ -550,4 +801,5 @@ export function renderEditorScreen(
   syncOptionalSectionsUi(root, currentCv);
   preview.update(currentCv);
   setStatus("saved");
+  updateUndoRedoUi();
 }

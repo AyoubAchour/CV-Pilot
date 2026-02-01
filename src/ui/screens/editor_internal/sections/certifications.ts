@@ -1,12 +1,11 @@
-import { Trash2, createIcons } from "lucide";
-
 import type { CvDocument } from "../../../../shared/cv-model";
 import { cloneCv, emptyCertification, fromLines, toLines } from "../helpers";
+import type { SetCv } from "../cv_update";
 
 export function renderCertificationsList(options: {
   root: HTMLElement;
   getCv: () => CvDocument;
-  setCv: (next: CvDocument) => void;
+  setCv: SetCv;
 }) {
   const { root, getCv, setCv } = options;
 
@@ -18,58 +17,103 @@ export function renderCertificationsList(options: {
   const currentCv = getCv();
   const items = currentCv.certifications ?? [];
 
+  if (items.length === 0) {
+    list.innerHTML = `
+      <div class="text-center py-6 bg-slate-50 border border-dashed border-slate-300">
+        <p class="text-sm text-slate-500">No certifications added yet</p>
+      </div>
+    `;
+    return;
+  }
+
   list.innerHTML = items
     .map(
-      (_item, index) => `
-          <div class="rounded border border-slate-200 bg-slate-50 p-3" data-role="cert" data-index="${index}">
-            <div class="flex items-center justify-between">
-              <h4 class="text-xs font-semibold text-slate-900">Entry ${index + 1}</h4>
+      (item, index) => `
+          <div class="group bg-white border border-slate-200 p-4 hover:border-slate-300 transition-colors" data-role="cert" data-index="${index}">
+            <div class="flex items-start justify-between gap-3">
+              <div class="flex-1 min-w-0">
+                <h4 class="text-sm font-semibold text-slate-900">${item.name || `Certification ${index + 1}`}</h4>
+                ${item.issuer ? `<p class="text-xs text-slate-500 mt-0.5">${item.issuer}${item.date ? ` · ${item.date}` : ''}</p>` : ''}
+              </div>
               <button
                 type="button"
-                class="inline-flex items-center gap-1 rounded border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-900 hover:bg-slate-50"
+                class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 opacity-0 group-hover:opacity-100 transition-all"
                 data-action="remove-cert"
                 data-index="${index}"
+                title="Remove certification"
               >
-                <i data-lucide="trash-2" class="h-3.5 w-3.5"></i>
-                Remove
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
               </button>
             </div>
 
-            <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <label class="block">
-                <span class="text-xs font-medium text-slate-700">Name</span>
-                <input class="mt-1 w-full rounded border border-slate-200 px-3 py-2 text-sm" data-cert-field="name" data-index="${index}" />
-              </label>
-              <label class="block">
-                <span class="text-xs font-medium text-slate-700">Issuer</span>
-                <input class="mt-1 w-full rounded border border-slate-200 px-3 py-2 text-sm" data-cert-field="issuer" data-index="${index}" />
-              </label>
-              <label class="block">
-                <span class="text-xs font-medium text-slate-700">Date</span>
-                <input class="mt-1 w-full rounded border border-slate-200 px-3 py-2 text-sm" data-cert-field="date" data-index="${index}" placeholder="2025" />
-              </label>
-              <label class="block">
-                <span class="text-xs font-medium text-slate-700">Link</span>
-                <input class="mt-1 w-full rounded border border-slate-200 px-3 py-2 text-sm" data-cert-field="link" data-index="${index}" placeholder="https://..." />
-              </label>
-              <label class="block sm:col-span-2">
-                <span class="text-xs font-medium text-slate-700">Details (one per line)</span>
-                <textarea class="mt-1 min-h-21 w-full rounded border border-slate-200 px-3 py-2 text-sm" data-cert-field="highlights" data-index="${index}"></textarea>
-              </label>
+            <div class="mt-4 grid grid-cols-1 gap-4">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-medium text-slate-700 mb-1.5">Name</label>
+                  <input 
+                    type="text"
+                    class="w-full px-3 py-2 bg-white border border-slate-300 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                    data-cert-field="name" 
+                    data-index="${index}"
+                    placeholder="AWS Certified Solutions Architect"
+                  />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-slate-700 mb-1.5">Issuer</label>
+                  <input 
+                    type="text"
+                    class="w-full px-3 py-2 bg-white border border-slate-300 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                    data-cert-field="issuer" 
+                    data-index="${index}"
+                    placeholder="Amazon Web Services"
+                  />
+                </div>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-medium text-slate-700 mb-1.5">Date</label>
+                  <input 
+                    type="text"
+                    class="w-full px-3 py-2 bg-white border border-slate-300 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                    data-cert-field="date" 
+                    data-index="${index}"
+                    placeholder="2025"
+                  />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-slate-700 mb-1.5">Link</label>
+                  <input 
+                    type="url"
+                    class="w-full px-3 py-2 bg-white border border-slate-300 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                    data-cert-field="link" 
+                    data-index="${index}"
+                    placeholder="https://..."
+                  />
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1.5">
+                  Details <span class="text-slate-400 font-normal">(one per line)</span>
+                </label>
+                <textarea 
+                  rows="3"
+                  class="w-full px-3 py-2 bg-white border border-slate-300 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow resize-none"
+                  data-cert-field="highlights" 
+                  data-index="${index}"
+                  placeholder="Credential ID: ABC123&#10;Valid until 2027"
+                ></textarea>
+              </div>
             </div>
           </div>
         `
     )
     .join("");
 
-  createIcons({
-    icons: { Trash2 },
-    nameAttr: "data-lucide",
-    root: list,
-  });
-
   const bind = (
     selector: string,
+    groupKey: string,
     getValue: (item: CvDocument["certifications"][number]) => string,
     setValue: (item: CvDocument["certifications"][number], value: string) => void
   ) => {
@@ -88,26 +132,31 @@ export function renderCertificationsList(options: {
         const next = cloneCv(getCv());
         const item = next.certifications[index];
         setValue(item, input.value);
-        setCv(next);
+        setCv(next, { kind: "typing", groupKey: `certifications[${index}].${groupKey}` });
       });
     }
   };
 
-  bind('[data-cert-field="name"]', (i) => i.name, (i, v) => {
+  bind('[data-cert-field="name"]', "name", (i) => i.name, (i, v) => {
     i.name = v;
   });
-  bind('[data-cert-field="issuer"]', (i) => i.issuer, (i, v) => {
+  bind('[data-cert-field="issuer"]', "issuer", (i) => i.issuer, (i, v) => {
     i.issuer = v;
   });
-  bind('[data-cert-field="date"]', (i) => i.date, (i, v) => {
+  bind('[data-cert-field="date"]', "date", (i) => i.date, (i, v) => {
     i.date = v;
   });
-  bind('[data-cert-field="link"]', (i) => i.link, (i, v) => {
+  bind('[data-cert-field="link"]', "link", (i) => i.link, (i, v) => {
     i.link = v;
   });
-  bind('[data-cert-field="highlights"]', (i) => fromLines(i.highlights ?? []), (i, v) => {
-    i.highlights = toLines(v);
-  });
+  bind(
+    '[data-cert-field="highlights"]',
+    "highlights",
+    (i) => fromLines(i.highlights ?? []),
+    (i, v) => {
+      i.highlights = toLines(v);
+    }
+  );
 
   const removeButtons = list.querySelectorAll<HTMLButtonElement>("[data-action=remove-cert]");
   for (const button of removeButtons) {
@@ -120,7 +169,7 @@ export function renderCertificationsList(options: {
 
       const next = cloneCv(getCv());
       next.certifications.splice(index, 1);
-      setCv(next);
+      setCv(next, { kind: "structural", groupKey: "certifications" });
       renderCertificationsList(options);
     });
   }
@@ -129,7 +178,7 @@ export function renderCertificationsList(options: {
 export function bindAddCertification(options: {
   root: HTMLElement;
   getCv: () => CvDocument;
-  setCv: (next: CvDocument) => void;
+  setCv: SetCv;
   render: () => void;
 }) {
   const { root, getCv, setCv, render } = options;
@@ -141,7 +190,7 @@ export function bindAddCertification(options: {
       e.stopPropagation();
       const next = cloneCv(getCv());
       next.certifications.push(emptyCertification());
-      setCv(next);
+      setCv(next, { kind: "structural", groupKey: "certifications" });
       render();
     });
 }

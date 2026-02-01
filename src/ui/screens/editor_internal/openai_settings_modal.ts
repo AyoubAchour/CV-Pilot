@@ -78,7 +78,7 @@ export function bindOpenAiSettingsModal({ root }: BindOpenAiSettingsModalArgs): 
 
       const messageHtml =
         message
-          ? `<div class="mt-3 rounded border px-3 py-2 text-xs ${
+          ? `<div class="mt-3 border px-3 py-2 text-xs ${
               message.kind === "error"
                 ? "border-rose-200 bg-rose-50 text-rose-800"
                 : message.kind === "success"
@@ -88,7 +88,7 @@ export function bindOpenAiSettingsModal({ root }: BindOpenAiSettingsModalArgs): 
           : "";
 
       panel.innerHTML = `
-        <div class="rounded-lg bg-white shadow-xl">
+        <div class="bg-white shadow-xl">
           <div class="border-b border-slate-200 px-5 py-4">
             <div class="flex items-start justify-between gap-3">
               <div>
@@ -102,11 +102,11 @@ export function bindOpenAiSettingsModal({ root }: BindOpenAiSettingsModalArgs): 
           <div class="px-5 py-4">
             ${
               isLoadingStatus
-                ? `<div class="rounded border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">Loading OpenAI status…</div>`
+                ? `<div class="border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">Loading OpenAI status…</div>`
                 : ""
             }
 
-            <div class="rounded border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
+            <div class="border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
               <div>Configured: <span class="font-semibold ${configured ? "text-emerald-700" : "text-rose-700"}">${configured ? "Yes" : "No"}</span></div>
               <div class="mt-0.5">Secure storage available: <span class="font-semibold ${storageAvailable ? "text-emerald-700" : "text-rose-700"}">${storageAvailable ? "Yes" : "No"}</span></div>
               <div class="mt-0.5">Default model: <span class="font-semibold text-slate-900">${escapeHtml(model)}</span></div>
@@ -115,14 +115,14 @@ export function bindOpenAiSettingsModal({ root }: BindOpenAiSettingsModalArgs): 
             ${
               storageAvailable
                 ? ""
-                : `<div class="mt-3 rounded border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800">Secure storage is not available on this system, so API keys cannot be saved. This must be fixed before using OpenAI.</div>`
+                : `<div class="mt-3 border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800">Secure storage is not available on this system, so API keys cannot be saved. This must be fixed before using OpenAI.</div>`
             }
 
             <div class="mt-4 grid grid-cols-1 gap-3">
               <label class="block">
                 <span class="text-xs font-medium text-slate-700">API key</span>
                 <input
-                  class="mt-1 w-full rounded border border-slate-200 px-3 py-2 text-sm"
+                  class="mt-1 w-full border border-slate-200 px-3 py-2 text-sm"
                   type="password"
                   autocomplete="off"
                   placeholder="sk-..."
@@ -135,7 +135,7 @@ export function bindOpenAiSettingsModal({ root }: BindOpenAiSettingsModalArgs): 
               <label class="block">
                 <span class="text-xs font-medium text-slate-700">Model</span>
                 <select
-                  class="mt-1 w-full rounded border border-slate-200 px-3 py-2 text-sm"
+                  class="mt-1 w-full border border-slate-200 px-3 py-2 text-sm"
                   data-field="model"
                   ${!canInteract ? "disabled" : ""}
                 >
