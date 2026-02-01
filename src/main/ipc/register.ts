@@ -45,11 +45,14 @@ import { isSafeGitHubVerificationUri } from "../github/config";
 import { GitHubDeviceFlowService } from "../github/device-flow";
 import { buildGitHubRepoContextPack } from "../github/context-pack";
 import { generateCvSuggestionsFromGitHubContext } from "../openai/cv_suggestions";
+import { generateSkillsFromCvContext } from "../openai/skills";
 import { generateSummaryFromCvContext } from "../openai/summary";
 import { testOpenAi } from "../openai/test";
 import type {
   OpenAiCvSuggestions,
   OpenAiGenerateCvSuggestionsInput,
+  OpenAiGenerateSkillsFromCvInput,
+  OpenAiGenerateSkillsFromCvResult,
   OpenAiGenerateSummaryFromCvInput,
   OpenAiGenerateSummaryFromCvResult,
   OpenAiStatus,
@@ -334,6 +337,24 @@ export function registerIpcHandlers(): void {
         throw new Error("Invalid payload.");
       }
       return generateSummaryFromCvContext(apiKey, model, input);
+    }
+  );
+
+  ipcMain.handle(
+    "cv:openaiGenerateSkillsFromCv",
+    async (
+      _event,
+      input: OpenAiGenerateSkillsFromCvInput | undefined
+    ): Promise<OpenAiGenerateSkillsFromCvResult> => {
+      const apiKey = await getStoredOpenAiApiKey();
+      if (!apiKey) {
+        throw new Error("OpenAI API key is not configured. Open AI Settings and add your key.");
+      }
+      const model = (await getStoredOpenAiModel()) ?? "gpt-4o-mini";
+      if (!input) {
+        throw new Error("Invalid payload.");
+      }
+      return generateSkillsFromCvContext(apiKey, model, input);
     }
   );
 }

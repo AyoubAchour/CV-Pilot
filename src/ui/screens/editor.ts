@@ -14,6 +14,7 @@ import { createPreviewController } from "./editor_internal/preview";
 import { bindSectionToggle, syncOptionalSectionsUi } from "./editor_internal/optional_sections";
 import { bindGitHubImportModal } from "./editor_internal/github_import_modal";
 import { bindOpenAiSettingsModal } from "./editor_internal/openai_settings_modal";
+import { bindSkillsEditor, renderSkillsEditor } from "./editor_internal/skills_editor";
 import { bindAddExperience, renderExperienceList } from "./editor_internal/sections/experience";
 import { bindAddEducation, renderEducationList } from "./editor_internal/sections/education";
 import { bindAddProject, renderProjectsList } from "./editor_internal/sections/projects";
@@ -166,7 +167,9 @@ export function renderEditorScreen(
     setFieldValue("location", currentCv.basics.location ?? "");
     setFieldValue("summary", currentCv.basics.summary ?? "");
     setFieldValue("links", fromLines(currentCv.basics.links ?? []));
-    setFieldValue("skills", fromLines(currentCv.skills ?? []));
+
+    // Skills chips
+    renderSkillsEditor(root, currentCv);
   };
 
   const pushHistory = (base: CvDocument) => {
@@ -275,6 +278,7 @@ export function renderEditorScreen(
     renderAwards();
     renderPublications();
     renderVolunteering();
+    renderSkillsEditor(root, currentCv);
     syncOptionalSectionsUi(root, currentCv);
     rehydrateUi();
     scheduleSave();
@@ -298,6 +302,7 @@ export function renderEditorScreen(
     renderAwards();
     renderPublications();
     renderVolunteering();
+    renderSkillsEditor(root, currentCv);
     syncOptionalSectionsUi(root, currentCv);
     rehydrateUi();
     scheduleSave();
@@ -623,17 +628,7 @@ type BasicsTextKey = Exclude<keyof CvDocument["basics"], "links">;
     });
   }
 
-  const skillsInput = root.querySelector<HTMLTextAreaElement>(
-    '[data-field="skills"]'
-  );
-  if (skillsInput) {
-    skillsInput.value = fromLines(currentCv.skills ?? []);
-    skillsInput.addEventListener("input", () => {
-      const next = cloneCv(currentCv);
-      next.skills = toLines(skillsInput.value);
-      setCv(next, { kind: "typing", groupKey: "skills" });
-    });
-  }
+  bindSkillsEditor({ root, getCv, setCv });
 
   const renderExperience = () =>
     renderExperienceList({
@@ -680,9 +675,7 @@ type BasicsTextKey = Exclude<keyof CvDocument["basics"], "links">;
       setFieldValue("location", nextCv.basics.location ?? "");
       setFieldValue("links", fromLines(nextCv.basics.links ?? []));
 
-      if (skillsInput) {
-        skillsInput.value = fromLines(nextCv.skills ?? []);
-      }
+      renderSkillsEditor(root, nextCv);
 
       if (!prevCv.sections.projects && nextCv.sections.projects) {
         const details = root.querySelector<HTMLDetailsElement>(

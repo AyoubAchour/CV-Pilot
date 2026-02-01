@@ -314,7 +314,7 @@ export function renderEditorHtml(model: { project: ProjectSummary }, currentCv: 
                   <summary class="px-5 py-4 bg-slate-50/50 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden [&::marker]:content-[''] flex items-start justify-between gap-4">
                     <div>
                       <h2 class="text-sm font-semibold text-slate-900">Skills</h2>
-                      <p class="text-xs text-slate-500 mt-0.5">List your technical and soft skills (one per line)</p>
+                      <p class="text-xs text-slate-500 mt-0.5"><span data-role="meta-skills">0 skills</span></p>
                     </div>
                     <div class="text-slate-400 transition-transform group-open:rotate-180" aria-hidden="true">
                       <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -323,12 +323,49 @@ export function renderEditorHtml(model: { project: ProjectSummary }, currentCv: 
                     </div>
                   </summary>
                   <div class="p-5 border-t border-slate-100">
-                    <textarea 
-                      data-field="skills"
-                      rows="6"
-                      class="w-full px-3 py-2 bg-white border border-slate-300 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow resize-none"
-                      placeholder="JavaScript&#10;React&#10;Node.js&#10;Project Management"
-                    ></textarea>
+                    <div class="space-y-3" data-role="skills-editor">
+                      <div data-role="skills-chips" class="flex flex-wrap gap-2"></div>
+
+                      <div class="flex items-center gap-2">
+                        <input
+                          type="text"
+                          data-field="skills-input"
+                          class="flex-1 min-w-0 px-3 py-2 bg-white border border-slate-300 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                          placeholder="Type a skill and press Enter"
+                          autocomplete="off"
+                          spellcheck="false"
+                        />
+                        <button
+                          type="button"
+                          data-action="skills-add"
+                          class="px-3 py-2 border border-slate-200 bg-white text-slate-900 text-sm font-medium hover:bg-slate-50 transition-colors"
+                        >
+                          Add
+                        </button>
+                        <button
+                          type="button"
+                          data-action="generate-skills"
+                          class="px-3 py-2 border border-slate-200 bg-white text-slate-900 text-sm font-medium hover:bg-slate-50 transition-colors"
+                        >
+                          Generate with AI
+                        </button>
+                        <button
+                          type="button"
+                          data-action="undo-skills-ai"
+                          class="px-3 py-2 border border-slate-200 bg-white text-slate-900 text-sm font-medium hover:bg-slate-50 transition-colors hidden"
+                        >
+                          Undo AI
+                        </button>
+                      </div>
+
+                      <div data-role="skills-ai-status" class="text-xs text-slate-500"></div>
+
+                      <div class="text-xs text-slate-500">
+                        Press <span class="font-medium">Enter</span> or type <span class="font-medium">,</span> to add.
+                        Paste multiple skills (comma or newline separated).
+                      </div>
+                      <div data-role="skills-hint" class="hidden text-xs text-slate-500"></div>
+                    </div>
                   </div>
                 </details>
 
