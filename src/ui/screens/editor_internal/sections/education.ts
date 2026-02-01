@@ -51,7 +51,7 @@ export function renderEducationList(options: {
         const isOpen = openEntries.has(index);
         const hasContent = item.degree || item.school;
         const displayTitle = hasContent 
-          ? `${item.degree}${item.school ? ` at ${item.school}` : ''}`
+          ? `${escapeHtml(item.degree)}${item.school ? ` at ${escapeHtml(item.school)}` : ''}`
           : `Education ${index + 1}`;
         const displaySubtitle = item.start || item.end 
           ? `${item.start || 'Start'} - ${item.end || 'Present'}`

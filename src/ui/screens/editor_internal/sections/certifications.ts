@@ -1,5 +1,5 @@
 import type { CvDocument } from "../../../../shared/cv-model";
-import { cloneCv, emptyCertification, fromLines, toLines } from "../helpers";
+import { cloneCv, emptyCertification, escapeHtml, fromLines, toLines } from "../helpers";
 import type { SetCv } from "../cv_update";
 
 export function renderCertificationsList(options: {
@@ -32,8 +32,8 @@ export function renderCertificationsList(options: {
           <div class="group bg-white border border-slate-200 p-4 hover:border-slate-300 transition-colors" data-role="cert" data-index="${index}">
             <div class="flex items-start justify-between gap-3">
               <div class="flex-1 min-w-0">
-                <h4 class="text-sm font-semibold text-slate-900">${item.name || `Certification ${index + 1}`}</h4>
-                ${item.issuer ? `<p class="text-xs text-slate-500 mt-0.5">${item.issuer}${item.date ? ` · ${item.date}` : ''}</p>` : ''}
+                <h4 class="text-sm font-semibold text-slate-900">${escapeHtml(item.name || `Certification ${index + 1}`)}</h4>
+                ${item.issuer ? `<p class="text-xs text-slate-500 mt-0.5">${escapeHtml(item.issuer)}${item.date ? ` · ${escapeHtml(item.date)}` : ''}</p>` : ''}
               </div>
               <button
                 type="button"

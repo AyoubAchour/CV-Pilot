@@ -1,6 +1,6 @@
 import 'dotenv/config';
 
-import { app, BrowserWindow, Menu } from 'electron';
+import { app, BrowserWindow, Menu, shell } from 'electron';
 import path from 'node:path';
 import started from 'electron-squirrel-startup';
 
@@ -25,6 +25,7 @@ const createWindow = () => {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
       contextIsolation: true,
+      sandbox: true,
     },
   });
 
@@ -39,8 +40,49 @@ const createWindow = () => {
     );
   }
 
-  // Open the DevTools.
-  mainWindow.webContents.openDevTools();
+  // Prevent in-app navigation and popups. Open external links in the system browser.
+  const allowedOrigin = MAIN_WINDOW_VITE_DEV_SERVER_URL
+    ? new URL(MAIN_WINDOW_VITE_DEV_SERVER_URL).origin
+    : null;
+
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    try {
+      const u = new URL(url);
+      if (u.protocol === 'http:' || u.protocol === 'https:') {
+        void shell.openExternal(u.toString());
+      }
+    } catch {
+      // ignore
+    }
+    return { action: 'deny' };
+  });
+
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    try {
+      const u = new URL(url);
+
+      // Allow navigation only to our own dev server origin (dev) or local file (prod).
+      if (allowedOrigin && u.origin === allowedOrigin) {
+        return;
+      }
+      if (!allowedOrigin && u.protocol === 'file:') {
+        return;
+      }
+
+      event.preventDefault();
+
+      if (u.protocol === 'http:' || u.protocol === 'https:') {
+        void shell.openExternal(u.toString());
+      }
+    } catch {
+      event.preventDefault();
+    }
+  });
+
+  // Only open DevTools in development.
+  if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
+    mainWindow.webContents.openDevTools();
+  }
 };
 
 // This method will be called when Electron has finished

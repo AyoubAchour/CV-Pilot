@@ -101,6 +101,38 @@ export function renderApp() {
           onOpenProject: (projectId) => {
             void openProject(projectId);
           },
+          onQuickExport: (projectId) => {
+            void (async () => {
+              try {
+                const cv = await window.cvPilot.getProjectCv(projectId);
+                const result = await window.cvPilot.exportCvPdf({ projectId, cv });
+                if (!result.canceled && "savedPath" in result) {
+                  window.alert(`Exported PDF to: ${result.savedPath}`);
+                }
+              } catch (err) {
+                const message = err instanceof Error ? err.message : "Export failed.";
+                window.alert(`Export failed: ${message}`);
+              }
+            })();
+          },
+          onDeleteProject: (projectId) => {
+            void (async () => {
+              const project = projects.find((p) => p.id === projectId);
+              const label = project ? project.title : projectId;
+              const ok = window.confirm(
+                `Delete this CV?\n\n${label}\n\nThis cannot be undone.`
+              );
+              if (!ok) return;
+              try {
+                await window.cvPilot.deleteProject(projectId);
+                await refreshProjects();
+                render();
+              } catch (err) {
+                const message = err instanceof Error ? err.message : "Delete failed.";
+                window.alert(`Delete failed: ${message}`);
+              }
+            })();
+          },
         });
         return;
 

@@ -1,5 +1,5 @@
 import type { CvDocument } from "../../../../shared/cv-model";
-import { cloneCv, emptyProject, fromLines, toLines } from "../helpers";
+import { cloneCv, emptyProject, escapeHtml, fromLines, toLines } from "../helpers";
 import type { SetCv } from "../cv_update";
 
 export function renderProjectsList(options: {
@@ -32,8 +32,8 @@ export function renderProjectsList(options: {
           <div class="group bg-white border border-slate-200 p-4 hover:border-slate-300 transition-colors" data-role="project" data-index="${index}">
             <div class="flex items-start justify-between gap-3">
               <div class="flex-1 min-w-0">
-                <h4 class="text-sm font-semibold text-slate-900">${item.title || `Project ${index + 1}`}</h4>
-                ${item.date ? `<p class="text-xs text-slate-500 mt-0.5">${item.date}</p>` : ''}
+                <h4 class="text-sm font-semibold text-slate-900">${escapeHtml(item.title || `Project ${index + 1}`)}</h4>
+                ${item.date ? `<p class="text-xs text-slate-500 mt-0.5">${escapeHtml(item.date)}</p>` : ''}
               </div>
               <button
                 type="button"

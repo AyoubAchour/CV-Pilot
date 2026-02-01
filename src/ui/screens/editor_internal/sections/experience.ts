@@ -49,7 +49,7 @@ export function renderExperienceList(options: {
         const isOpen = openEntries.has(index);
         const hasContent = item.role || item.company;
         const displayTitle = hasContent 
-          ? `${item.role}${item.company ? ` at ${item.company}` : ''}`
+          ? `${escapeHtml(item.role)}${item.company ? ` at ${escapeHtml(item.company)}` : ''}`
           : `Experience ${index + 1}`;
         const displaySubtitle = item.start || item.end 
           ? `${item.start || 'Start'} - ${item.end || 'Present'}`

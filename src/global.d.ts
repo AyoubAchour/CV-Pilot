@@ -169,6 +169,7 @@ declare global {
       createBlankCvProject: () => Promise<CreateBlankCvProjectResult>;
       getProjectCv: (projectId: string) => Promise<CvDocument>;
       saveProjectCv: (input: SaveProjectCvInput) => Promise<void>;
+      deleteProject: (projectId: string) => Promise<void>;
       exportCvPdf: (input: ExportCvPdfInput) => Promise<ExportCvPdfResult>;
 
       githubDisconnect: () => Promise<void>;

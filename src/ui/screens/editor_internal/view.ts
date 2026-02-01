@@ -1,6 +1,14 @@
 import type { CvDocument } from "../../../shared/cv-model";
 
 export function renderEditorHtml(model: { project: ProjectSummary }, currentCv: CvDocument): string {
+  const escapeHtml = (value: string): string =>
+    String(value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+
   return `
     <div class="flex h-screen overflow-hidden bg-slate-50">
       <!-- Left Sidebar -->
@@ -87,9 +95,9 @@ export function renderEditorHtml(model: { project: ProjectSummary }, currentCv: 
             <!-- Left: Title and Status -->
             <div class="flex items-center gap-4 min-w-0">
               <div class="min-w-0">
-                <h1 class="text-lg font-semibold text-slate-900 truncate" data-role="cv-title">${model.project.title}</h1>
+                <h1 class="text-lg font-semibold text-slate-900 truncate" data-role="cv-title">${escapeHtml(model.project.title)}</h1>
                 <div class="flex items-center gap-2 mt-0.5">
-                  <span class="text-xs text-slate-500">${model.project.id}</span>
+                  <span class="text-xs text-slate-500">${escapeHtml(model.project.id)}</span>
                   <span class="text-slate-300">·</span>
                   <span data-role="save-status" class="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700">
                     <span class="w-1.5 h-1.5 bg-emerald-600"></span>

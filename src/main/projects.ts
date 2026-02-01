@@ -195,3 +195,12 @@ export async function saveProjectCv(input: SaveProjectCvInput): Promise<void> {
 
   await writeProjectRecord(projectDir, projectRecord);
 }
+
+export async function deleteProject(projectId: string): Promise<void> {
+  if (typeof projectId !== "string") {
+    throw new Error("Invalid payload: projectId must be a string");
+  }
+  const projectDir = getProjectDir(projectId);
+  // `force: true` makes delete idempotent if the project is already gone.
+  await fs.rm(projectDir, { recursive: true, force: true });
+}

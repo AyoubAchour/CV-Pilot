@@ -53,6 +53,8 @@ contextBridge.exposeInMainWorld('cvPilot', {
 		ipcRenderer.invoke('cv:getProjectCv', projectId),
 	saveProjectCv: (input: SaveProjectCvInput): Promise<void> =>
 		ipcRenderer.invoke('cv:saveProjectCv', input),
+	deleteProject: (projectId: string): Promise<void> =>
+		ipcRenderer.invoke('cv:deleteProject', projectId),
 	exportCvPdf: (input: ExportCvPdfInput): Promise<ExportCvPdfResult> =>
 		ipcRenderer.invoke('cv:exportCvPdf', input),
 

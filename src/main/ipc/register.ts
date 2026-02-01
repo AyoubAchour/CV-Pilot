@@ -22,6 +22,7 @@ import { normalizeCvDocument } from "../../shared/cv-model";
 
 import {
   createBlankCvProject,
+  deleteProject,
   getProjectCv,
   listProjects,
   saveProjectCv,
@@ -95,6 +96,13 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle("cv:saveProjectCv", async (_event, input: SaveProjectCvInput) => {
     return saveProjectCv(input);
+  });
+
+  ipcMain.handle("cv:deleteProject", async (_event, projectId: string | undefined): Promise<void> => {
+    if (typeof projectId !== "string") {
+      throw new Error("Invalid payload");
+    }
+    await deleteProject(projectId);
   });
 
   ipcMain.handle(
