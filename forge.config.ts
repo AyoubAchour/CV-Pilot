@@ -56,8 +56,18 @@ const config: ForgeConfig = {
         : {},
     ),
     new MakerZIP({}, ['darwin']),
-    new MakerRpm({}),
-    new MakerDeb({}),
+    new MakerRpm({
+      options: {
+        // Linux filesystems are case-sensitive; our packaged executable is "VITA"
+        // while the Debian/RPM package name (and /usr/bin symlink) remains "vita".
+        bin: 'VITA',
+      },
+    }),
+    new MakerDeb({
+      options: {
+        bin: 'VITA',
+      },
+    }),
   ],
   plugins: [
     new VitePlugin({
