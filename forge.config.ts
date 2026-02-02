@@ -1,5 +1,5 @@
 import type { ForgeConfig } from '@electron-forge/shared-types';
-import { MakerSquirrel } from '@electron-forge/maker-squirrel';
+import { MakerWix } from '@electron-forge/maker-wix';
 import { MakerZIP } from '@electron-forge/maker-zip';
 import { MakerDeb } from '@electron-forge/maker-deb';
 import { MakerRpm } from '@electron-forge/maker-rpm';
@@ -11,11 +11,19 @@ import path from 'node:path';
 
 const BUNDLE_ID = 'com.ayoubachour.vita';
 
+// NOTE: This must remain stable across releases so MSI upgrades work properly.
+const WIX_UPGRADE_CODE = 'd49d4815-c427-4ae9-90ab-3b6d5a84f4db';
+
 const iconBasePath = path.resolve(process.cwd(), 'assets', 'icon');
-const hasIcon =
-  fs.existsSync(`${iconBasePath}.png`) ||
-  fs.existsSync(`${iconBasePath}.ico`) ||
-  fs.existsSync(`${iconBasePath}.icns`);
+const iconForCurrentPlatform = (() => {
+  if (process.platform === 'win32') {
+    return fs.existsSync(`${iconBasePath}.ico`) ? iconBasePath : undefined;
+  }
+  if (process.platform === 'darwin') {
+    return fs.existsSync(`${iconBasePath}.icns`) ? iconBasePath : undefined;
+  }
+  return fs.existsSync(`${iconBasePath}.png`) ? iconBasePath : undefined;
+})();
 
 const enableMacSigning = process.env.MACOS_SIGN === '1';
 const appleId = process.env.APPLE_ID;
@@ -29,7 +37,8 @@ const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
     appBundleId: BUNDLE_ID,
-    icon: hasIcon ? iconBasePath : undefined,
+    icon: iconForCurrentPlatform,
+    extraResource: ['assets'],
     ...(enableMacSigning
       ? {
           osxSign: {},
@@ -47,14 +56,25 @@ const config: ForgeConfig = {
   },
   rebuildConfig: {},
   makers: [
-    new MakerSquirrel(
-      windowsCertificateFile && windowsCertificatePassword
+    new MakerWix({
+      manufacturer: 'Ayoub Achour',
+      language: 1033,
+      upgradeCode: WIX_UPGRADE_CODE,
+      programFilesFolderName: 'VITA',
+      shortcutFolderName: 'VITA',
+      appUserModelId: BUNDLE_ID,
+      ui: {
+        // Traditional installer UX: allow users to choose install directory.
+        chooseDirectory: true,
+      },
+      ...(windowsCertificateFile && windowsCertificatePassword
         ? {
             certificateFile: windowsCertificateFile,
             certificatePassword: windowsCertificatePassword,
           }
-        : {},
-    ),
+        : {}),
+      icon: path.resolve(process.cwd(), 'assets', 'icon.ico'),
+    }),
     new MakerZIP({}, ['darwin']),
     new MakerRpm({
       options: {

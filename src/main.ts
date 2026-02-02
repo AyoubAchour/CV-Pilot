@@ -2,14 +2,8 @@ import 'dotenv/config';
 
 import { app, BrowserWindow, Menu, shell } from 'electron';
 import path from 'node:path';
-import started from 'electron-squirrel-startup';
 
 import { registerIpcHandlers } from './main/ipc/register';
-
-// Handle creating/removing shortcuts on Windows when installing/uninstalling.
-if (started) {
-  app.quit();
-}
 
 if (process.platform === 'win32') {
   app.setAppUserModelId('com.ayoubachour.vita');
@@ -18,6 +12,10 @@ if (process.platform === 'win32') {
 const createWindow = () => {
   Menu.setApplicationMenu(null);
 
+  const iconPath = MAIN_WINDOW_VITE_DEV_SERVER_URL
+    ? path.resolve(process.cwd(), 'assets', 'icon.png')
+    : path.join(process.resourcesPath, 'assets', 'icon.png');
+
   // Create the browser window.
   const mainWindow = new BrowserWindow({
     width: 800,
@@ -25,6 +23,9 @@ const createWindow = () => {
     minWidth: 900,
     minHeight: 600,
     title: 'VITA',
+    ...(process.platform === 'win32' || process.platform === 'linux'
+      ? { icon: iconPath }
+      : {}),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,

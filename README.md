@@ -83,6 +83,21 @@ git tag v1.0.0
 git push origin v1.0.0
 ```
 
+## Windows MSI builds (WiX)
+
+Windows MSI builds use the WiX Toolset v3 (traditional installer / wizard).
+
+- Install WiX Toolset v3 via Chocolatey (pin recommended):
+
+```powershell
+choco install wixtoolset --version=3.14.0
+```
+
+Notes:
+
+- The installer can optionally allow choosing an install directory (configured in `forge.config.ts`).
+- Windows app icons require `assets/icon.ico` (we generate it from `assets/icon.png` on Windows during `npm run make`).
+
 ## Code signing (optional)
 
 - **Windows (Squirrel)**: provide a PFX certificate via GitHub Actions secrets `WINDOWS_CERT_PFX_BASE64` and `WINDOWS_CERT_PASSWORD`.
