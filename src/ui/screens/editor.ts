@@ -33,6 +33,7 @@ export interface EditorScreenHandlers {
   onBack?: () => void;
   onSave?: (cv: CvDocument) => Promise<void>;
   onExportPdf?: (cv: CvDocument, suggestedFileName: string) => Promise<void>;
+  onRenameProject?: (newTitle: string) => Promise<void>;
 }
 
 function cloneForHistory(cv: CvDocument): CvDocument {
@@ -407,7 +408,7 @@ export function renderEditorScreen(
     exportButton.disabled = true;
 
     try {
-      const suggestedFileName = getCvSuggestedFileName(currentCv);
+      const suggestedFileName = getCvSuggestedFileName(currentCv, model.project.customTitle);
       await handlers.onExportPdf(currentCv, suggestedFileName);
     } finally {
       isExporting = false;
@@ -417,6 +418,86 @@ export function renderEditorScreen(
 
   bindOpenAiSettingsModal({ root });
 
+  // Inline rename for header title
+  const headerTitleEl = root.querySelector<HTMLHeadingElement>('[data-role="cv-title"]');
+  const headerTitleInput = root.querySelector<HTMLTextAreaElement>('[data-role="cv-title-input"]');
+
+  const autosizeTitleInput = () => {
+    if (!headerTitleInput) return;
+    headerTitleInput.style.height = "auto";
+    headerTitleInput.style.height = `${headerTitleInput.scrollHeight}px`;
+  };
+
+  const startHeaderRename = () => {
+    if (!headerTitleEl || !headerTitleInput) return;
+    headerTitleEl.classList.add("hidden");
+    headerTitleInput.classList.remove("hidden");
+    headerTitleInput.value = headerTitleEl.textContent?.trim() || "";
+    autosizeTitleInput();
+    headerTitleInput.focus();
+    // Prefer partial edits: place caret at end instead of selecting everything.
+    const len = headerTitleInput.value.length;
+    try {
+      headerTitleInput.setSelectionRange(len, len);
+    } catch {
+      // ignore
+    }
+  };
+
+  const endHeaderRename = async (save: boolean) => {
+    if (!headerTitleEl || !headerTitleInput) return;
+    
+    const newTitle = headerTitleInput.value.replace(/[\r\n]+/g, " ").trim();
+    const oldTitle = headerTitleEl.textContent?.trim() || "";
+    const oldCustomTitle = model.project.customTitle;
+
+    headerTitleInput.classList.add("hidden");
+    headerTitleEl.classList.remove("hidden");
+
+    if (save && newTitle && newTitle !== oldTitle && handlers.onRenameProject) {
+      headerTitleEl.textContent = newTitle;
+      // Update local model so export uses new title immediately
+      model.project.customTitle = newTitle;
+      model.project.title = newTitle;
+      try {
+        await handlers.onRenameProject(newTitle);
+      } catch (err) {
+        // Revert on error
+        headerTitleEl.textContent = oldTitle;
+        model.project.customTitle = oldCustomTitle;
+        model.project.title = oldTitle;
+        console.error("Failed to rename project:", err);
+      }
+    }
+  };
+
+  headerTitleEl?.addEventListener("click", (e) => {
+    e.preventDefault();
+    startHeaderRename();
+  }, { signal: listeners.signal });
+
+  headerTitleInput?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      endHeaderRename(true);
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      endHeaderRename(false);
+    }
+  }, { signal: listeners.signal });
+
+  headerTitleInput?.addEventListener("input", () => {
+    autosizeTitleInput();
+  }, { signal: listeners.signal });
+
+  headerTitleInput?.addEventListener("blur", () => {
+    // Small delay to allow checking if still in edit mode
+    setTimeout(() => {
+      if (!headerTitleInput.classList.contains("hidden")) {
+        endHeaderRename(true);
+      }
+    }, 100);
+  }, { signal: listeners.signal });
 type BasicsTextKey = Exclude<keyof CvDocument["basics"], "links">;
 
   const basicsBindings: Array<[BasicsTextKey, string]> = [

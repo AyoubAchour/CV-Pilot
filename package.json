@@ -1,8 +1,8 @@
 {
-  "name": "cv-pilot",
-  "productName": "cv-pilot",
+  "name": "vita",
+  "productName": "VITA",
   "version": "1.0.0",
-  "description": "CV Pilot (Electron). Set CV_PILOT_GITHUB_CLIENT_ID to enable GitHub import.",
+  "description": "VITA (Electron). Set VITA_GITHUB_CLIENT_ID to enable GitHub import.",
   "main": ".vite/build/main.js",
   "private": true,
   "scripts": {

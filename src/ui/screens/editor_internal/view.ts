@@ -20,7 +20,7 @@ export function renderEditorHtml(model: { project: ProjectSummary }, currentCv: 
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
           </div>
-          <span class="text-lg font-bold text-slate-900">CV Pilot</span>
+          <span class="text-lg font-bold text-slate-900">VITA</span>
         </div>
 
         <!-- Navigation -->
@@ -95,7 +95,19 @@ export function renderEditorHtml(model: { project: ProjectSummary }, currentCv: 
             <!-- Left: Title and Status -->
             <div class="flex items-center gap-4 min-w-0">
               <div class="min-w-0">
-                <h1 class="text-lg font-semibold text-slate-900 truncate" data-role="cv-title">${escapeHtml(model.project.title)}</h1>
+                <!-- Editable Title -->
+                <div class="w-full max-w-full sm:max-w-[65%]" data-role="header-title-container">
+                  <h1 
+                    class="text-lg font-semibold text-slate-900 cursor-text hover:bg-blue-50/50 px-1 rounded transition-colors whitespace-normal wrap-break-word leading-snug" 
+                    data-role="cv-title"
+                    title="Click to rename"
+                  >${escapeHtml(model.project.title)}</h1>
+                  <textarea
+                    rows="1"
+                    class="hidden w-full text-lg font-semibold text-slate-900 bg-white border border-transparent px-1 resize-none overflow-hidden whitespace-normal wrap-break-word leading-snug"
+                    data-role="cv-title-input"
+                  >${escapeHtml(model.project.title)}</textarea>
+                </div>
                 <div class="flex items-center gap-2 mt-0.5">
                   <span class="text-xs text-slate-500">${escapeHtml(model.project.id)}</span>
                   <span class="text-slate-300">·</span>

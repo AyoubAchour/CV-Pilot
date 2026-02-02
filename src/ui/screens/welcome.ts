@@ -29,7 +29,7 @@ export function renderWelcomeScreen(
             <div class="flex h-12 w-12 items-center justify-center bg-blue-600 text-white">
               <i data-lucide="file-text" class="h-6 w-6"></i>
             </div>
-            <span class="text-xl font-bold text-slate-900">CV Pilot</span>
+            <span class="text-xl font-bold text-slate-900">VITA</span>
           </div>
 
           <!-- Headline -->

@@ -151,7 +151,13 @@ export function getCvTitle(cv: CvDocument): string {
   return name.length > 0 ? `${name} — CV` : "Untitled CV";
 }
 
-export function getCvSuggestedFileName(cv: CvDocument): string {
+export function getCvSuggestedFileName(cv: CvDocument, customTitle?: string): string {
+  // If a custom title is provided, use it for the filename
+  if (customTitle && customTitle.trim().length > 0) {
+    const sanitized = customTitle.trim().replace(/[\\/:*?"<>|]+/g, "").trim();
+    return sanitized.length > 0 ? `${sanitized}.pdf` : "cv.pdf";
+  }
+  // Otherwise fall back to fullName-based filename
   const base = cv.basics.fullName.trim().replace(/[\\/:*?"<>|]+/g, "").trim();
   return base.length > 0 ? `${base} - CV.pdf` : "cv.pdf";
 }

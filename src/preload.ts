@@ -18,6 +18,7 @@ import type {
 interface ProjectSummary {
 	id: string;
 	title: string;
+	customTitle?: string;
 	lastEdited: string;
 	tags: string[];
 }
@@ -55,6 +56,8 @@ contextBridge.exposeInMainWorld('cvPilot', {
 		ipcRenderer.invoke('cv:saveProjectCv', input),
 	deleteProject: (projectId: string): Promise<void> =>
 		ipcRenderer.invoke('cv:deleteProject', projectId),
+	renameProject: (input: { projectId: string; customTitle: string }): Promise<{ title: string }> =>
+		ipcRenderer.invoke('cv:renameProject', input),
 	exportCvPdf: (input: ExportCvPdfInput): Promise<ExportCvPdfResult> =>
 		ipcRenderer.invoke('cv:exportCvPdf', input),
 

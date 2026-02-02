@@ -11,6 +11,7 @@ declare global {
   interface ProjectSummary {
     id: string;
     title: string;
+    customTitle?: string;
     lastEdited: string;
     tags: string[];
   }
@@ -170,6 +171,7 @@ declare global {
       getProjectCv: (projectId: string) => Promise<CvDocument>;
       saveProjectCv: (input: SaveProjectCvInput) => Promise<void>;
       deleteProject: (projectId: string) => Promise<void>;
+      renameProject: (input: { projectId: string; customTitle: string }) => Promise<{ title: string }>;
       exportCvPdf: (input: ExportCvPdfInput) => Promise<ExportCvPdfResult>;
 
       githubDisconnect: () => Promise<void>;

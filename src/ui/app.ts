@@ -133,6 +133,24 @@ export function renderApp() {
               }
             })();
           },
+          onRenameProject: async (projectId, newTitle) => {
+            try {
+              const result = await window.cvPilot.renameProject({
+                projectId,
+                customTitle: newTitle,
+              });
+              // Update local state
+              const project = projects.find((p) => p.id === projectId);
+              if (project) {
+                project.title = result.title;
+                project.customTitle = newTitle;
+              }
+            } catch (err) {
+              const message = err instanceof Error ? err.message : "Rename failed.";
+              window.alert(`Rename failed: ${message}`);
+              throw err; // Re-throw to trigger revert in UI
+            }
+          },
         });
         return;
 
@@ -239,7 +257,22 @@ export function renderApp() {
                 window.alert(`Exported PDF to: ${result.savedPath}`);
               }
             },
-          }
+            onRenameProject: async (newTitle) => {
+              if (!editorProject) return;
+              try {
+                const result = await window.cvPilot.renameProject({
+                  projectId: editorProject.id,
+                  customTitle: newTitle,
+                });
+                // Update local state so navigation back shows updated title
+                editorProject.title = result.title;
+                editorProject.customTitle = newTitle;
+              } catch (err) {
+                const message = err instanceof Error ? err.message : "Rename failed.";
+                window.alert(`Rename failed: ${message}`);
+                throw err; // Re-throw to trigger revert in UI
+              }
+            },          }
         );
         return;
     }

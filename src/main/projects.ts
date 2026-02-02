@@ -9,6 +9,7 @@ import { getCvTitle } from "../shared/cv-template";
 export interface ProjectSummary {
   id: string;
   title: string;
+  customTitle?: string;
   lastEdited: string;
   tags: string[];
 }
@@ -65,6 +66,7 @@ async function readProjectSummary(projectDir: string): Promise<ProjectSummary | 
     const record = parsed as Record<string, unknown>;
     const id = typeof record.id === "string" ? record.id : null;
     const title = typeof record.title === "string" ? record.title : null;
+    const customTitle = typeof record.customTitle === "string" ? record.customTitle : undefined;
     const updatedAt = typeof record.updatedAt === "string" ? record.updatedAt : null;
     const tags = Array.isArray(record.tags)
       ? record.tags.filter((t): t is string => typeof t === "string")
@@ -76,7 +78,8 @@ async function readProjectSummary(projectDir: string): Promise<ProjectSummary | 
 
     return {
       id,
-      title,
+      title: customTitle || title,
+      customTitle,
       lastEdited: updatedAt,
       tags,
     };
@@ -164,12 +167,16 @@ export async function saveProjectCv(input: SaveProjectCvInput): Promise<void> {
 
   const now = new Date().toISOString();
   let existingCreatedAt: string | null = null;
+  let existingCustomTitle: string | null = null;
 
   try {
     const existing = await readJsonFile(path.join(projectDir, "project.json"));
     if (existing && typeof existing === "object") {
       const record = existing as Record<string, unknown>;
       existingCreatedAt = typeof record.createdAt === "string" ? record.createdAt : null;
+      existingCustomTitle = typeof record.customTitle === "string" && record.customTitle.trim().length > 0
+        ? record.customTitle
+        : null;
     }
   } catch {
     // ignore
@@ -178,6 +185,7 @@ export async function saveProjectCv(input: SaveProjectCvInput): Promise<void> {
   const projectRecord: {
     id: string;
     title: string;
+    customTitle?: string;
     updatedAt: string;
     tags: string[];
     createdAt?: string;
@@ -193,6 +201,11 @@ export async function saveProjectCv(input: SaveProjectCvInput): Promise<void> {
     projectRecord.createdAt = existingCreatedAt;
   }
 
+  // Preserve customTitle if it exists.
+  if (existingCustomTitle) {
+    projectRecord.customTitle = existingCustomTitle;
+  }
+
   await writeProjectRecord(projectDir, projectRecord);
 }
 
@@ -203,4 +216,49 @@ export async function deleteProject(projectId: string): Promise<void> {
   const projectDir = getProjectDir(projectId);
   // `force: true` makes delete idempotent if the project is already gone.
   await fs.rm(projectDir, { recursive: true, force: true });
+}
+
+export interface RenameProjectInput {
+  projectId: string;
+  customTitle: string;
+}
+
+export async function renameProject(input: RenameProjectInput): Promise<{ title: string }> {
+  if (!input || typeof input.projectId !== "string") {
+    throw new Error("Invalid payload: projectId must be a string");
+  }
+
+  const projectDir = getProjectDir(input.projectId);
+  const projectFile = path.join(projectDir, "project.json");
+
+  let existing: Record<string, unknown> = {};
+  try {
+    const raw = await fs.readFile(projectFile, "utf8");
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === "object") {
+      existing = parsed as Record<string, unknown>;
+    }
+  } catch {
+    throw new Error("Project not found");
+  }
+
+  const trimmedTitle = (input.customTitle ?? "").trim();
+  const now = new Date().toISOString();
+
+  // If custom title is empty, remove customTitle field (fall back to auto-derived)
+  if (trimmedTitle.length === 0) {
+    delete existing.customTitle;
+  } else {
+    existing.customTitle = trimmedTitle;
+  }
+  existing.updatedAt = now;
+
+  await writeProjectRecord(projectDir, existing);
+
+  // Return the effective title
+  const effectiveTitle = trimmedTitle.length > 0
+    ? trimmedTitle
+    : (typeof existing.title === "string" ? existing.title : "Untitled CV");
+
+  return { title: effectiveTitle };
 }

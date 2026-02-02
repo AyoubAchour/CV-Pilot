@@ -11,6 +11,10 @@ if (started) {
   app.quit();
 }
 
+if (process.platform === 'win32') {
+  app.setAppUserModelId('com.ayoubachour.vita');
+}
+
 const createWindow = () => {
   Menu.setApplicationMenu(null);
 
@@ -20,7 +24,7 @@ const createWindow = () => {
     height: 600,
     minWidth: 900,
     minHeight: 600,
-    title: 'CV Pilot',
+    title: 'VITA',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,

@@ -1,4 +1,4 @@
-# CV Pilot
+# VITA
 
 A cross-platform desktop app for drafting and maintaining a clean, ATS-friendly CV.
 
@@ -38,7 +38,9 @@ cp .env.example .env
 2. Create a GitHub OAuth App and set the Client ID:
 
 - Create an OAuth App: https://github.com/settings/developers
-- Set `CV_PILOT_GITHUB_CLIENT_ID` in `.env`
+- Set `VITA_GITHUB_CLIENT_ID` in `.env` (or legacy `CV_PILOT_GITHUB_CLIENT_ID`)
+
+Note: The **Client ID is not a secret** and can be shipped with the app. VITA uses OAuth **Device Flow**, so users will authenticate in their browser and paste a short code.
 
 ### Run the app
 
@@ -56,17 +58,34 @@ npm run package
 npm run make
 ```
 
+## Icons
+
+See [assets/README.md](assets/README.md) for icon placement.
+
+## CI builds
+
+GitHub Actions workflow: [.github/workflows/build.yml](.github/workflows/build.yml)
+
+It builds on Windows, macOS, and Linux and uploads the Forge outputs from `out/` as workflow artifacts.
+
+## Code signing (optional)
+
+- **Windows (Squirrel)**: provide a PFX certificate via GitHub Actions secrets `WINDOWS_CERT_PFX_BASE64` and `WINDOWS_CERT_PASSWORD`.
+- **macOS (sign + notarize)**: provide `MACOS_CERT_P12_BASE64`, `MACOS_CERT_PASSWORD`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID`.
+
 ## Configuration
 
 ### Environment variables
 
-- `CV_PILOT_GITHUB_CLIENT_ID` (optional, required only for GitHub import)
+- `VITA_GITHUB_CLIENT_ID` (optional, required only for GitHub import; legacy `CV_PILOT_GITHUB_CLIENT_ID` still supported)
+
+In packaged builds, VITA can embed a default GitHub OAuth Client ID at build time (so end users don't need a `.env`). A runtime environment variable still overrides the embedded value.
 
 OpenAI is configured inside the app UI (OpenAI Settings) and stored securely on the local machine.
 
 ## Data storage (local)
 
-CV Pilot stores all data locally using Electron’s `userData` directory:
+VITA stores all data locally using Electron’s `userData` directory:
 
 - CV projects: `userData/projects/<projectId>/`
   - `cv.json`
@@ -93,11 +112,11 @@ If you want to back up your CVs, back up the `projects` directory.
 
 ### GitHub import says the client id is missing
 
-Set `CV_PILOT_GITHUB_CLIENT_ID` in `.env` (see `.env.example`).
+Set `VITA_GITHUB_CLIENT_ID` in `.env` (see `.env.example`).
 
 ### OpenAI settings say secure storage is unavailable
 
-Electron `safeStorage` depends on OS-level facilities. Until encryption is available, CV Pilot won’t store API keys.
+Electron `safeStorage` depends on OS-level facilities. Until encryption is available, VITA won’t store API keys.
 
 ## License
 

@@ -25,9 +25,11 @@ import {
   deleteProject,
   getProjectCv,
   listProjects,
+  renameProject,
   saveProjectCv,
   type CreateBlankCvProjectResult,
   type ProjectSummary,
+  type RenameProjectInput,
   type SaveProjectCvInput,
 } from "../projects";
 
@@ -104,6 +106,16 @@ export function registerIpcHandlers(): void {
     }
     await deleteProject(projectId);
   });
+
+  ipcMain.handle(
+    "cv:renameProject",
+    async (_event, input: RenameProjectInput | undefined): Promise<{ title: string }> => {
+      if (!input || typeof input.projectId !== "string") {
+        throw new Error("Invalid payload");
+      }
+      return renameProject(input);
+    }
+  );
 
   ipcMain.handle(
     "cv:exportCvPdf",
