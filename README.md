@@ -68,6 +68,21 @@ GitHub Actions workflow: [.github/workflows/build.yml](.github/workflows/build.y
 
 It builds on Windows, macOS, and Linux and uploads the Forge outputs from `out/` as workflow artifacts.
 
+## Release publishing
+
+Pushing a Git tag starting with `v` (example: `v1.0.0`) will:
+
+- Run the same multi-OS builds
+- Create a GitHub Release
+- Attach the built artifacts to the Release
+
+Example:
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
 ## Code signing (optional)
 
 - **Windows (Squirrel)**: provide a PFX certificate via GitHub Actions secrets `WINDOWS_CERT_PFX_BASE64` and `WINDOWS_CERT_PASSWORD`.
