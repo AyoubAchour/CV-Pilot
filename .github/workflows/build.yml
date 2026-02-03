@@ -55,7 +55,27 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          choco install wixtoolset --version=3.14.0 -y
+          # GitHub-hosted runners often already have WiX installed.
+          # Installing a pinned older version can fail if a newer one is present.
+          if ((Get-Command candle.exe -ErrorAction SilentlyContinue) -and (Get-Command light.exe -ErrorAction SilentlyContinue)) {
+            Write-Host "WiX Toolset already available on PATH."
+            exit 0
+          }
+
+          choco install wixtoolset -y --no-progress
+
+          # Ensure WiX bin folder is on PATH for subsequent steps.
+          $candidateBins = @(
+            "$env:ProgramFiles(x86)\WiX Toolset v3.14\bin",
+            "$env:ProgramFiles(x86)\WiX Toolset v3.11\bin",
+            "$env:ProgramFiles(x86)\WiX Toolset v3.10\bin"
+          )
+
+          $wixBin = $candidateBins | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if ($null -ne $wixBin) {
+            "PATH=$wixBin;$env:PATH" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+            Write-Host "Added WiX bin to PATH: $wixBin"
+          }
 
       - name: Install Linux packaging deps
         if: runner.os == 'Linux'
