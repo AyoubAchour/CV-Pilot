@@ -18,6 +18,9 @@ export function renderApp() {
   let projects: Project[] = [];
   let isCreatingCv = false;
 
+  // Track per-project async work (e.g. rename) so we can avoid navigation races.
+  const busyProjects = new Set<string>();
+
   let editorProject: Project | null = null;
   let editorCv: CvDocument | null = null;
   let editorError: string | null = null;
@@ -37,10 +40,23 @@ export function renderApp() {
 
   const goToEditor = async (projectId: string) => {
     currentScreen = "editor";
+    // Snapshot whatever we currently have (fast) so the loading UI can show something,
+    // then refresh project metadata from disk so titles stay in sync after a dashboard rename.
     editorProject = projects.find((p) => p.id === projectId) ?? null;
     editorCv = null;
     editorError = null;
     render();
+
+    // Project titles are stored in project.json (and can be changed from the dashboard).
+    // Refresh before loading the CV so the editor header reflects the latest title.
+    try {
+      await refreshProjects();
+      editorProject = projects.find((p) => p.id === projectId) ?? null;
+      render();
+    } catch (err) {
+      console.error(err);
+      // Keep the snapshot if refresh failed.
+    }
 
     try {
       editorCv = await window.cvPilot.getProjectCv(projectId);
@@ -134,6 +150,7 @@ export function renderApp() {
             })();
           },
           onRenameProject: async (projectId, newTitle) => {
+            busyProjects.add(projectId);
             try {
               const result = await window.cvPilot.renameProject({
                 projectId,
@@ -149,8 +166,12 @@ export function renderApp() {
               const message = err instanceof Error ? err.message : "Rename failed.";
               window.alert(`Rename failed: ${message}`);
               throw err; // Re-throw to trigger revert in UI
+            } finally {
+              busyProjects.delete(projectId);
             }
           },
+
+          isProjectBusy: (projectId) => busyProjects.has(projectId),
         });
         return;
 

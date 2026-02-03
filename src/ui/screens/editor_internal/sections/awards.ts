@@ -19,6 +19,15 @@ export function renderAwardsList(options: {
   const currentCv = getCv();
   const items = currentCv.awards ?? [];
 
+  if (items.length === 0) {
+    list.innerHTML = `
+      <div class="text-center py-6 bg-slate-50 border border-dashed border-slate-300">
+        <p class="text-sm text-slate-500">No awards added yet</p>
+      </div>
+    `;
+    return;
+  }
+
   list.innerHTML = items
     .map(
       (_item, index) => `
@@ -140,8 +149,27 @@ export function bindAddAward(options: {
       e.preventDefault();
       e.stopPropagation();
       const next = cloneCv(getCv());
+      next.sections.awards = true;
       next.awards.push(emptyAward());
       setCv(next, { kind: "structural", groupKey: "awards" });
       render();
+
+      const details = root.querySelector<HTMLDetailsElement>(
+        "[data-role=section-awards]"
+      );
+      if (details) {
+        details.open = true;
+      }
+
+      root
+        .querySelector<HTMLElement>("[data-role=section-body-awards]")
+        ?.classList.remove("hidden");
+
+      const index = next.awards.length - 1;
+      root
+        .querySelector<HTMLInputElement>(
+          `[data-award-field="title"][data-index="${index}"]`
+        )
+        ?.focus();
     });
 }

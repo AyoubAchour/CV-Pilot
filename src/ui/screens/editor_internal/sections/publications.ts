@@ -19,6 +19,15 @@ export function renderPublicationsList(options: {
   const currentCv = getCv();
   const items = currentCv.publications ?? [];
 
+  if (items.length === 0) {
+    list.innerHTML = `
+      <div class="text-center py-6 bg-slate-50 border border-dashed border-slate-300">
+        <p class="text-sm text-slate-500">No publications added yet</p>
+      </div>
+    `;
+    return;
+  }
+
   list.innerHTML = items
     .map(
       (_item, index) => `
@@ -147,8 +156,27 @@ export function bindAddPublication(options: {
       e.preventDefault();
       e.stopPropagation();
       const next = cloneCv(getCv());
+      next.sections.publications = true;
       next.publications.push(emptyPublication());
       setCv(next, { kind: "structural", groupKey: "publications" });
       render();
+
+      const details = root.querySelector<HTMLDetailsElement>(
+        "[data-role=section-publications]"
+      );
+      if (details) {
+        details.open = true;
+      }
+
+      root
+        .querySelector<HTMLElement>("[data-role=section-body-publications]")
+        ?.classList.remove("hidden");
+
+      const index = next.publications.length - 1;
+      root
+        .querySelector<HTMLInputElement>(
+          `[data-publication-field="title"][data-index="${index}"]`
+        )
+        ?.focus();
     });
 }

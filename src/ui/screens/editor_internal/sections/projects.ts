@@ -174,8 +174,27 @@ export function bindAddProject(options: {
       e.preventDefault();
       e.stopPropagation();
       const next = cloneCv(getCv());
+      next.sections.projects = true;
       next.projects.push(emptyProject());
       setCv(next, { kind: "structural", groupKey: "projects" });
       render();
+
+      const details = root.querySelector<HTMLDetailsElement>(
+        "[data-role=section-projects]"
+      );
+      if (details) {
+        details.open = true;
+      }
+
+      root
+        .querySelector<HTMLElement>("[data-role=section-body-projects]")
+        ?.classList.remove("hidden");
+
+      const index = next.projects.length - 1;
+      root
+        .querySelector<HTMLInputElement>(
+          `[data-project-field="title"][data-index="${index}"]`
+        )
+        ?.focus();
     });
 }

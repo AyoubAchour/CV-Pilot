@@ -6,7 +6,7 @@ import {
 } from "lucide";
 
 import type { CvDocument } from "../../shared/cv-model";
-import { getCvSuggestedFileName } from "../../shared/cv-template";
+import { getCvSuggestedFileName, getCvTitle } from "../../shared/cv-template";
 
 import { cloneCv, emptyAward, emptyCertification, emptyProject, emptyPublication, emptyVolunteering, fromLines, toLines } from "./editor_internal/helpers";
 import { renderEditorHtml } from "./editor_internal/view";
@@ -195,6 +195,12 @@ export function renderEditorScreen(
     return;
   };
 
+  // Assigned after the header title elements are in the DOM.
+  // When no custom title is set, we keep the header title in sync with the CV-derived title.
+  let syncHeaderTitleFromCv: (cv: CvDocument) => void = () => {
+    return;
+  };
+
   const setCv = (next: CvDocument, meta: CvUpdateMeta = {}) => {
     const kind = meta.kind ?? "typing";
     const groupKey = (meta.groupKey ?? "").trim();
@@ -225,6 +231,7 @@ export function renderEditorScreen(
     }
 
     currentCv = next;
+    syncHeaderTitleFromCv(currentCv);
     preview?.update(currentCv);
     scheduleSave();
     syncOptionalSectionsUi(root, currentCv);
@@ -421,6 +428,23 @@ export function renderEditorScreen(
   // Inline rename for header title
   const headerTitleEl = root.querySelector<HTMLHeadingElement>('[data-role="cv-title"]');
   const headerTitleInput = root.querySelector<HTMLTextAreaElement>('[data-role="cv-title-input"]');
+
+  syncHeaderTitleFromCv = (cv: CvDocument) => {
+    // If user explicitly renamed the project (customTitle), never override it.
+    const hasCustomTitle = (model.project.customTitle ?? "").trim().length > 0;
+    if (hasCustomTitle) return;
+
+    if (!headerTitleEl || !headerTitleInput) return;
+
+    // If the user is currently editing the title, don't fight them.
+    const isEditing = !headerTitleInput.classList.contains("hidden");
+    if (isEditing) return;
+
+    const autoTitle = getCvTitle(cv);
+    model.project.title = autoTitle;
+    headerTitleEl.textContent = autoTitle;
+    headerTitleInput.value = autoTitle;
+  };
 
   const autosizeTitleInput = () => {
     if (!headerTitleInput) return;

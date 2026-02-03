@@ -14,6 +14,7 @@ declare global {
     customTitle?: string;
     lastEdited: string;
     tags: string[];
+    completion?: number;
   }
 
   interface CreateBlankCvProjectResult {

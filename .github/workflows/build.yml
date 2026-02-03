@@ -26,6 +26,10 @@ jobs:
           - ubuntu-latest
 
     env:
+      # GitHub OAuth client id (NOT a secret). Used for GitHub import Device Flow.
+      # Recommended storage: GitHub repo variable `VITA_GITHUB_CLIENT_ID`.
+      VITA_GITHUB_CLIENT_ID: ${{ vars.VITA_GITHUB_CLIENT_ID }}
+
       # Optional Windows code signing (PFX)
       WINDOWS_CERT_PFX_BASE64: ${{ secrets.WINDOWS_CERT_PFX_BASE64 }}
       WINDOWS_CERT_PASSWORD: ${{ secrets.WINDOWS_CERT_PASSWORD }}

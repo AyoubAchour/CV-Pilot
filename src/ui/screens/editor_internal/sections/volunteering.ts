@@ -19,6 +19,15 @@ export function renderVolunteeringList(options: {
   const currentCv = getCv();
   const items = currentCv.volunteering ?? [];
 
+  if (items.length === 0) {
+    list.innerHTML = `
+      <div class="text-center py-6 bg-slate-50 border border-dashed border-slate-300">
+        <p class="text-sm text-slate-500">No volunteering entries yet</p>
+      </div>
+    `;
+    return;
+  }
+
   list.innerHTML = items
     .map(
       (_item, index) => `
@@ -154,8 +163,27 @@ export function bindAddVolunteering(options: {
       e.preventDefault();
       e.stopPropagation();
       const next = cloneCv(getCv());
+      next.sections.volunteering = true;
       next.volunteering.push(emptyVolunteering());
       setCv(next, { kind: "structural", groupKey: "volunteering" });
       render();
+
+      const details = root.querySelector<HTMLDetailsElement>(
+        "[data-role=section-volunteering]"
+      );
+      if (details) {
+        details.open = true;
+      }
+
+      root
+        .querySelector<HTMLElement>("[data-role=section-body-volunteering]")
+        ?.classList.remove("hidden");
+
+      const index = next.volunteering.length - 1;
+      root
+        .querySelector<HTMLInputElement>(
+          `[data-vol-field="role"][data-index="${index}"]`
+        )
+        ?.focus();
     });
 }

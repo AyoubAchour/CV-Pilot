@@ -12,6 +12,7 @@ export interface ProjectSummary {
   customTitle?: string;
   lastEdited: string;
   tags: string[];
+  completion?: number; // 0..1
 }
 
 export interface SaveProjectCvInput {
@@ -68,6 +69,9 @@ async function readProjectSummary(projectDir: string): Promise<ProjectSummary | 
     const title = typeof record.title === "string" ? record.title : null;
     const customTitle = typeof record.customTitle === "string" ? record.customTitle : undefined;
     const updatedAt = typeof record.updatedAt === "string" ? record.updatedAt : null;
+    const completion = typeof record.completion === "number" && Number.isFinite(record.completion)
+      ? Math.max(0, Math.min(1, record.completion))
+      : undefined;
     const tags = Array.isArray(record.tags)
       ? record.tags.filter((t): t is string => typeof t === "string")
       : [];
@@ -82,10 +86,57 @@ async function readProjectSummary(projectDir: string): Promise<ProjectSummary | 
       customTitle,
       lastEdited: updatedAt,
       tags,
+      completion,
     };
   } catch {
     return null;
   }
+}
+
+function computeCvCompletion(cv: CvDocument): number {
+  const score = (ok: boolean) => (ok ? 1 : 0);
+  const nonEmpty = (value: string | null | undefined) =>
+    typeof value === "string" && value.trim().length > 0;
+
+  const hasAny = (values: Array<string | null | undefined>) =>
+    (values ?? []).some((v) => nonEmpty(v));
+
+  const links = Array.isArray(cv.basics.links) ? cv.basics.links : [];
+
+  const hasSkills = (cv.skills ?? []).some((s) => (s ?? "").trim().length > 0);
+
+  const hasExperience = (cv.experience ?? []).some((e) =>
+    nonEmpty(e.role) || nonEmpty(e.company) || hasAny(e.highlights ?? [])
+  );
+
+  const hasEducation = (cv.education ?? []).some((ed) =>
+    nonEmpty(ed.school) || nonEmpty(ed.degree) || hasAny(ed.highlights ?? [])
+  );
+
+  const hasProjects = (cv.projects ?? []).some((p) =>
+    nonEmpty(p.title) || nonEmpty(p.link) || hasAny(p.highlights ?? [])
+  );
+
+  // Keep this simple and predictable: 10 equally weighted checks.
+  const checks = [
+    score(nonEmpty(cv.basics.fullName)),
+    score(nonEmpty(cv.basics.headline)),
+    score(nonEmpty(cv.basics.email)),
+    score(nonEmpty(cv.basics.phone)),
+    score(nonEmpty(cv.basics.location)),
+    score(nonEmpty(cv.basics.summary)),
+    score(hasAny(links)),
+    score(hasSkills),
+    score(hasExperience),
+    score(hasEducation || hasProjects),
+  ];
+
+  const total = checks.length;
+  const done = checks.reduce((sum, v) => sum + v, 0);
+  const ratio = total > 0 ? done / total : 0;
+
+  // Clamp + round to 3dp for stable UI.
+  return Math.max(0, Math.min(1, Math.round(ratio * 1000) / 1000));
 }
 
 export async function listProjects(): Promise<ProjectSummary[]> {
@@ -117,10 +168,12 @@ export async function createBlankCvProject(): Promise<CreateBlankCvProjectResult
 
   const cv = createBlankCv();
   const now = new Date().toISOString();
+  const completion = computeCvCompletion(cv);
 
   const projectRecord = {
     id: projectId,
     title: getCvTitle(cv),
+    completion,
     createdAt: now,
     updatedAt: now,
     tags: ["cv"],
@@ -139,6 +192,7 @@ export async function createBlankCvProject(): Promise<CreateBlankCvProjectResult
       title: projectRecord.title,
       lastEdited: now,
       tags: ["cv"],
+      completion,
     },
     cv,
   };
@@ -158,10 +212,12 @@ export async function saveProjectCv(input: SaveProjectCvInput): Promise<void> {
     throw new Error("Invalid payload");
   }
 
+  const normalizedCv = normalizeCvDocument(input.cv);
+
   const projectDir = getProjectDir(input.projectId);
   await fs.writeFile(
     path.join(projectDir, "cv.json"),
-    JSON.stringify(input.cv, null, 2),
+    JSON.stringify(normalizedCv, null, 2),
     "utf8"
   );
 
@@ -186,12 +242,14 @@ export async function saveProjectCv(input: SaveProjectCvInput): Promise<void> {
     id: string;
     title: string;
     customTitle?: string;
+    completion: number;
     updatedAt: string;
     tags: string[];
     createdAt?: string;
   } = {
     id: input.projectId,
-    title: getCvTitle(input.cv),
+    title: getCvTitle(normalizedCv),
+    completion: computeCvCompletion(normalizedCv),
     updatedAt: now,
     tags: ["cv"],
   };

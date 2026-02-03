@@ -189,8 +189,27 @@ export function bindAddCertification(options: {
       e.preventDefault();
       e.stopPropagation();
       const next = cloneCv(getCv());
+      next.sections.certifications = true;
       next.certifications.push(emptyCertification());
       setCv(next, { kind: "structural", groupKey: "certifications" });
       render();
+
+      const details = root.querySelector<HTMLDetailsElement>(
+        "[data-role=section-certifications]"
+      );
+      if (details) {
+        details.open = true;
+      }
+
+      root
+        .querySelector<HTMLElement>("[data-role=section-body-certifications]")
+        ?.classList.remove("hidden");
+
+      const index = next.certifications.length - 1;
+      root
+        .querySelector<HTMLInputElement>(
+          `[data-cert-field="name"][data-index="${index}"]`
+        )
+        ?.focus();
     });
 }

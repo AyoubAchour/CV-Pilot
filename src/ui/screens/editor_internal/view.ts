@@ -438,7 +438,7 @@ export function renderEditorHtml(model: { project: ProjectSummary }, currentCv: 
                           </div>
                         </div>
                       </summary>
-                      <div class="p-4 border-t border-slate-200 ${currentCv.sections.projects ? '' : 'hidden'}">
+                      <div data-role="section-body-projects" class="p-4 border-t border-slate-200 ${currentCv.sections.projects ? '' : 'hidden'}">
                         <div data-role="projects-list" class="space-y-4"></div>
                       </div>
                     </details>
@@ -478,7 +478,7 @@ export function renderEditorHtml(model: { project: ProjectSummary }, currentCv: 
                           </div>
                         </div>
                       </summary>
-                      <div class="p-4 border-t border-slate-200 ${currentCv.sections.certifications ? '' : 'hidden'}">
+                      <div data-role="section-body-certifications" class="p-4 border-t border-slate-200 ${currentCv.sections.certifications ? '' : 'hidden'}">
                         <div data-role="certifications-list" class="space-y-4"></div>
                       </div>
                     </details>
@@ -518,7 +518,7 @@ export function renderEditorHtml(model: { project: ProjectSummary }, currentCv: 
                           </div>
                         </div>
                       </summary>
-                      <div class="p-4 border-t border-slate-200 ${currentCv.sections.awards ? '' : 'hidden'}">
+                      <div data-role="section-body-awards" class="p-4 border-t border-slate-200 ${currentCv.sections.awards ? '' : 'hidden'}">
                         <div data-role="awards-list" class="space-y-4"></div>
                       </div>
                     </details>
@@ -558,7 +558,7 @@ export function renderEditorHtml(model: { project: ProjectSummary }, currentCv: 
                           </div>
                         </div>
                       </summary>
-                      <div class="p-4 border-t border-slate-200 ${currentCv.sections.publications ? '' : 'hidden'}">
+                      <div data-role="section-body-publications" class="p-4 border-t border-slate-200 ${currentCv.sections.publications ? '' : 'hidden'}">
                         <div data-role="publications-list" class="space-y-4"></div>
                       </div>
                     </details>
@@ -598,7 +598,7 @@ export function renderEditorHtml(model: { project: ProjectSummary }, currentCv: 
                           </div>
                         </div>
                       </summary>
-                      <div class="p-4 border-t border-slate-200 ${currentCv.sections.volunteering ? '' : 'hidden'}">
+                      <div data-role="section-body-volunteering" class="p-4 border-t border-slate-200 ${currentCv.sections.volunteering ? '' : 'hidden'}">
                         <div data-role="volunteering-list" class="space-y-4"></div>
                       </div>
                     </details>

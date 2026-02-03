@@ -1,5 +1,5 @@
 import type { CvDocument } from "../../../shared/cv-model";
-import { getCvTitle, renderCvHtmlDocument } from "../../../shared/cv-template";
+import { renderCvHtmlDocument } from "../../../shared/cv-template";
 
 export interface PreviewController {
   update: (cv: CvDocument) => void;
@@ -21,11 +21,6 @@ export function createPreviewController(root: HTMLElement): PreviewController {
   });
 
   const update = (cv: CvDocument) => {
-    const titleEl = root.querySelector<HTMLHeadingElement>("[data-role=cv-title]");
-    if (titleEl) {
-      titleEl.textContent = getCvTitle(cv);
-    }
-
     const iframe = root.querySelector<HTMLIFrameElement>("[data-role=cv-preview]");
     if (!iframe) {
       return;

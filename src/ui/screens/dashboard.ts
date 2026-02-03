@@ -19,6 +19,7 @@ export interface DashboardScreenHandlers {
   onQuickExport?: (projectId: string) => void;
   onDeleteProject?: (projectId: string) => void;
   onRenameProject?: (projectId: string, newTitle: string) => Promise<void>;
+  isProjectBusy?: (projectId: string) => boolean;
 }
 
 function escapeHtml(value: string): string {
@@ -36,6 +37,7 @@ export interface Project {
   customTitle?: string;
   lastEdited: string;
   tags: string[];
+  completion?: number; // 0..1
 }
 
 function formatRelativeTime(dateString: string): string {
@@ -123,7 +125,10 @@ function renderProjectCard(project: Project): string {
         <div class="mt-4 pt-4 border-t border-slate-100">
           <div class="flex items-center gap-2 text-xs text-slate-400">
             <div class="flex-1 h-1.5 bg-slate-100 overflow-hidden">
-              <div class="h-full w-3/4 bg-blue-500"></div>
+              <div class="h-full bg-blue-500" style="width: ${Math.max(
+                0,
+                Math.min(1, Number(project.completion ?? 0))
+              ) * 100}%;"></div>
             </div>
             <span>Click to edit</span>
           </div>
@@ -472,6 +477,11 @@ export function renderDashboardScreen(
 
     const projectId = openEl?.getAttribute("data-project-id");
     if (projectId) {
+      if (handlers.isProjectBusy?.(projectId)) {
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
       handlers.onOpenProject?.(projectId);
     }
   });
@@ -515,6 +525,9 @@ export function renderDashboardScreen(
       event.preventDefault();
       const projectId = cardEl.getAttribute("data-project-id");
       if (projectId) {
+        if (handlers.isProjectBusy?.(projectId)) {
+          return;
+        }
         handlers.onOpenProject?.(projectId);
       }
     }

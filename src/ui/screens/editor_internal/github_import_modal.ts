@@ -707,6 +707,13 @@ export function bindGitHubImportModal({
               err instanceof Error
                 ? err.message
                 : "Failed to start GitHub authorization.";
+
+            // Ensure the user always sees failures (in prod builds a missing
+            // client id would otherwise look like the button did nothing).
+            inlineMessage = {
+              kind: "error",
+              text: authMessage,
+            };
           } finally {
             isBusy = false;
             render();

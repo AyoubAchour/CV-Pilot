@@ -50,6 +50,13 @@ export function syncOptionalSectionsUi(root: HTMLElement, cv: CvDocument) {
       details.classList.toggle("opacity-80", !enabled);
     }
 
+    const body = root.querySelector<HTMLElement>(
+      `[data-role="section-body-${cfg.key}"]`
+    );
+    if (body) {
+      body.classList.toggle("hidden", !enabled);
+    }
+
     const meta = root.querySelector<HTMLDivElement>(`[data-role="meta-${cfg.key}"]`);
     if (meta) {
       const n = cfg.count(cv);
