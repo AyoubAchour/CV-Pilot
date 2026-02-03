@@ -128,7 +128,6 @@ jobs:
           path: |
             out/make/**/*.msi
             out/make/**/*.zip
-            out/make/**/*.dmg
             out/make/**/*.deb
             out/make/**/*.rpm
           if-no-files-found: warn
@@ -158,6 +157,5 @@ jobs:
           files: |
             release-artifacts/**/*.msi
             release-artifacts/**/*.zip
-            release-artifacts/**/*.dmg
             release-artifacts/**/*.deb
             release-artifacts/**/*.rpm
