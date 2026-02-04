@@ -40,6 +40,7 @@ interface ExportCvPdfInput {
 	suggestedFileName?: string;
 }
 
+
 type ExportCvPdfResult =
 	| { canceled: true }
 	| {

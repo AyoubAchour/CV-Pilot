@@ -158,6 +158,7 @@ declare global {
     notes: string[];
   };
 
+
   type OpenAiTestResult = {
     ok: boolean;
     model: string;
@@ -208,6 +209,7 @@ declare global {
       ) => Promise<OpenAiGenerateSkillsFromCvResult>;
 
       openaiTest: (input?: { apiKey?: string; model?: string }) => Promise<OpenAiTestResult>;
+
     };
   }
 }

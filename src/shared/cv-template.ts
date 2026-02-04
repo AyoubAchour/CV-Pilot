@@ -242,8 +242,8 @@ body{
   background:var(--bg);
 }
 
-/* Page size is A4. Margins are applied via printToPDF options for toggleable consistency. */
-@page{ size: A4; margin: 0; }
+/* Print/PDF settings. Use @page margins for consistent per-page whitespace. */
+@page{ size: A4; margin: 14mm 16mm; }
 
 .page{
   width:210mm;
@@ -260,27 +260,34 @@ body{
 .contact{margin-top:8px; color:var(--muted); font-size:11.5px; line-height:1.35;}
 .contact a{color:inherit; text-decoration:none; border-bottom:1px solid rgba(55,65,81,.35);}
 
-.rule{height:1px; background:var(--rule); margin:10px 0 12px;}
-.section{margin-top:10px;}
+.rule{height:1px; background:var(--rule); margin:12px 0 32px;}
+.section{margin-top:0;}
+.section + .section{margin-top:18px;}
 .section-title{
-  font-size:12px;
+  font-size:13px;
   font-weight:700;
   color:var(--ink);
-  margin:0 0 6px;
+  margin:0 0 8px;
+  padding-bottom:2px;
+  border-bottom:1px solid var(--rule);
+  break-after: avoid-page;
 }
 .p{font-size:12px; line-height:1.5; margin:0;}
 
-.item{margin:0 0 10px;}
+.item{margin:0 0 12px; break-inside: avoid-page; page-break-inside: avoid;}
 .item-head{display:flex; justify-content:space-between; gap:12px; align-items:baseline;}
 .item-title{font-size:12.5px; font-weight:700;}
 .item-meta{font-size:11.5px; color:var(--muted); white-space:nowrap;}
 .item-sub{margin-top:3px; font-size:11.5px; color:var(--muted);}
-.ul{margin:6px 0 0 16px; padding:0;}
-.ul li{margin:2px 0; font-size:11.8px; line-height:1.45;}
+.ul{margin:7px 0 0 16px; padding:0;}
+.ul li{margin:3px 0; font-size:11.8px; line-height:1.45;}
 
 .skills{margin-top:2px;}
-.skills-row{font-size:11.8px; line-height:1.4; margin:0 0 2px;}
+.skills-row{font-size:11.8px; line-height:1.4; margin:0 0 3px;}
 .skills-label{font-weight:700;}
+
+/* Reduce awkward single-line leftovers across page breaks */
+.p, .ul li{orphans:2; widows:2;}
 
 @media print {
   body{ background:#fff; }

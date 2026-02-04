@@ -26,18 +26,14 @@ export async function createPdfFromHtml(html: string): Promise<Buffer> {
       // ignore
     }
 
-    return await win.webContents.printToPDF({
+    const out = await win.webContents.printToPDF({
       pageSize: "A4",
       printBackground: true,
       preferCSSPageSize: true,
-      margins: {
-        // Units are inches (Electron docs). Roughly: 12mm top/bottom, 14mm left/right.
-        top: 0.472,
-        bottom: 0.472,
-        left: 0.551,
-        right: 0.551,
-      },
     });
+
+    // Electron versions can return Buffer-like Uint8Array. Normalize to Buffer.
+    return Buffer.isBuffer(out) ? out : Buffer.from(out);
   } finally {
     try {
       win.close();
