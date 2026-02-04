@@ -24,10 +24,6 @@ export function renderExperienceList(options: {
   const currentCv = getCv();
   const items = currentCv.experience ?? [];
 
-  if (items.length > 0 && openEntries.size === 0) {
-    openEntries.add(0);
-  }
-
   if (items.length === 0) {
     list.innerHTML = `
       <div class="text-center py-8 bg-slate-50 border border-dashed border-slate-300">
@@ -68,7 +64,7 @@ export function renderExperienceList(options: {
               data-index="${index}"
             >
               <!-- Drag Handle -->
-              <div class="text-slate-300 cursor-grab active:cursor-grabbing">
+              <div class="text-slate-300 cursor-grab active:cursor-grabbing" data-role="exp-drag-handle" data-index="${index}" draggable="true">
                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16" />
                 </svg>
@@ -180,12 +176,116 @@ export function renderExperienceList(options: {
     )
     .join("");
 
+  let draggingFromIndex: number | null = null;
+
+  const applyReorder = (from: number, to: number) => {
+    if (from === to) return;
+
+    const cv = getCv();
+    const items = cv.experience ?? [];
+    if (!items[from] || !items[to]) return;
+
+    const next = cloneCv(cv);
+    const list = next.experience;
+    if (!list) return;
+
+    const [moved] = list.splice(from, 1);
+    list.splice(to, 0, moved);
+
+    const nextOpen = new Set<number>();
+    for (const openIndex of openEntries) {
+      if (openIndex === from) {
+        nextOpen.add(to);
+        continue;
+      }
+
+      if (from < to) {
+        if (openIndex > from && openIndex <= to) {
+          nextOpen.add(openIndex - 1);
+        } else {
+          nextOpen.add(openIndex);
+        }
+      } else {
+        if (openIndex >= to && openIndex < from) {
+          nextOpen.add(openIndex + 1);
+        } else {
+          nextOpen.add(openIndex);
+        }
+      }
+    }
+
+    openEntries.clear();
+    for (const v of nextOpen) {
+      openEntries.add(v);
+    }
+
+    setCv(next, { kind: "structural", groupKey: "experience" });
+    renderExperienceList(options);
+  };
+
+  const dragHandles = list.querySelectorAll<HTMLElement>("[data-role=exp-drag-handle]");
+  for (const handle of dragHandles) {
+    handle.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+    });
+
+    handle.addEventListener("dragstart", (e) => {
+      e.stopPropagation();
+      const indexAttr = handle.getAttribute("data-index");
+      const index = indexAttr ? Number(indexAttr) : NaN;
+      if (!Number.isFinite(index)) return;
+      draggingFromIndex = index;
+      if (e.dataTransfer) {
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData("text/plain", String(index));
+      }
+    });
+
+    handle.addEventListener("dragend", () => {
+      draggingFromIndex = null;
+    });
+  }
+
+  const entries = list.querySelectorAll<HTMLElement>("[data-role=exp-entry]");
+  for (const entry of entries) {
+    entry.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.dataTransfer) {
+        e.dataTransfer.dropEffect = "move";
+      }
+    });
+
+    entry.addEventListener("drop", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const toAttr = entry.getAttribute("data-index");
+      const rawTo = toAttr ? Number(toAttr) : NaN;
+      if (!Number.isFinite(rawTo)) return;
+
+      const rawFrom =
+        draggingFromIndex ??
+        (e.dataTransfer ? Number(e.dataTransfer.getData("text/plain")) : NaN);
+      if (!Number.isFinite(rawFrom)) return;
+
+      if (rawFrom === rawTo) return;
+      applyReorder(rawFrom, rawTo);
+    });
+  }
+
   // Add click handlers for toggling
   const toggleButtons = list.querySelectorAll<HTMLElement>('[data-action="toggle-exp"]');
   toggleButtons.forEach(button => {
     button.addEventListener('click', (e) => {
       // Don't toggle if clicking the remove button
       if ((e.target as HTMLElement).closest('[data-action="remove-exp"]')) {
+        return;
+      }
+
+      // Don't toggle if interacting with the drag handle.
+      if ((e.target as HTMLElement).closest('[data-role="exp-drag-handle"]')) {
         return;
       }
       
@@ -280,9 +380,6 @@ export function renderExperienceList(options: {
       openEntries.clear();
       for (const v of nextOpen) {
         openEntries.add(v);
-      }
-      if (openEntries.size === 0 && next.experience.length > 0) {
-        openEntries.add(0);
       }
 
       setCv(next, { kind: "structural", groupKey: "experience" });

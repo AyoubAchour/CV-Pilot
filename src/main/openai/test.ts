@@ -39,10 +39,9 @@ function testSchema(): JsonSchema {
   return {
     type: "object",
     additionalProperties: false,
-    required: ["ok", "model", "message"],
+    required: ["ok", "message"],
     properties: {
       ok: { type: "boolean" },
-      model: { type: "string" },
       message: { type: "string" },
     },
   };
@@ -97,6 +96,9 @@ export async function testOpenAi(apiKey: string, model: string): Promise<OpenAiT
     throw new Error(`OpenAI returned non-JSON (${res.status}).`);
   }
 
+  const responseRecord = json && typeof json === "object" ? (json as Record<string, unknown>) : null;
+  const apiModel = responseRecord && typeof responseRecord.model === "string" ? responseRecord.model : null;
+
   if (!res.ok) {
     const record = json && typeof json === "object" ? (json as Record<string, unknown>) : null;
     const err = record?.error && typeof record.error === "object" ? (record.error as Record<string, unknown>) : null;
@@ -122,7 +124,7 @@ export async function testOpenAi(apiKey: string, model: string): Promise<OpenAiT
 
   const record = parsed as Record<string, unknown>;
   const ok = record.ok === true;
-  const returnedModel = typeof record.model === "string" ? record.model : chosenModel;
+  const returnedModel = apiModel || chosenModel;
   const message = typeof record.message === "string" ? record.message : "";
 
   return {

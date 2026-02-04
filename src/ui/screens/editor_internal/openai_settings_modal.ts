@@ -67,7 +67,27 @@ export function bindOpenAiSettingsModal({ root }: BindOpenAiSettingsModalArgs): 
 
       const canInteract = !isBusy && !isLoadingStatus;
 
-      const presetModels = ["gpt-5.2", "gpt-5-mini", "gpt-4o-mini"] as const;
+      const recommendedModels = ["gpt-5.2", "gpt-5-mini", "gpt-4o-mini", "o4-mini"] as const;
+      const presetModels = [
+        // GPT-5 family
+        "gpt-5.2",
+        "gpt-5.2-pro",
+        "gpt-5-mini",
+        "gpt-5-nano",
+
+        // GPT-4o family
+        "gpt-4o",
+        "gpt-4o-mini",
+
+        // GPT-4.1 family
+        "gpt-4.1",
+        "gpt-4.1-mini",
+        "gpt-4.1-nano",
+
+        // Reasoning (o-series)
+        "o3",
+        "o4-mini",
+      ] as const;
       const presetSet = new Set<string>(presetModels);
       const modelOptions = [
         ...presetModels.map((m) => ({ value: m, label: m })),
@@ -148,7 +168,7 @@ export function bindOpenAiSettingsModal({ root }: BindOpenAiSettingsModalArgs): 
                     )
                     .join("")}
                 </select>
-                <div class="mt-1 text-[11px] text-slate-500">Recommended: ${presetModels
+                <div class="mt-1 text-[11px] text-slate-500">Recommended: ${recommendedModels
                   .map((m) => escapeHtml(m))
                   .join(" · ")}</div>
               </label>
